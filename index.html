@@ -3,68 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>車牌探險家 - AI 極限辨識版</title>
+    <title>車牌探險家 - AI 旗艦版</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Orbitron:wght@700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Orbitron:wght@700;900&display=swap');
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #0f172a; color: #e2e8f0; overflow-x: hidden; user-select: none; }
         .font-tech { font-family: 'Orbitron', sans-serif; }
-        .plate-box { background: linear-gradient(145deg, #1e293b, #0f172a); border: 2px solid #334155; transition: all 0.3s ease; }
-        .plate-uncollected { filter: grayscale(100%); opacity: 0.35; }
-        .plate-collected { border-color: #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.4); background: linear-gradient(145deg, #334155, #1e293b); transform: scale(1.02); z-index: 10; }
-        .plate-text { text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }
-        .plate-collected .plate-text { color: #fbbf24; text-shadow: 0 0 8px rgba(251, 191, 36, 0.6); }
+        
+        /* 卡片樣式優化 */
+        .plate-box { 
+            background: linear-gradient(145deg, #1e293b, #0f172a); 
+            border: 2px solid #334155; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .plate-uncollected { filter: grayscale(100%); opacity: 0.3; }
+        .plate-collected { 
+            border-color: #fbbf24; 
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.3); 
+            background: linear-gradient(145deg, #334155, #1e293b); 
+            transform: translateY(-2px);
+        }
+        
+        /* 號碼文字放大 */
+        .plate-num-text { font-size: 1.25rem; font-weight: 900; letter-spacing: 1px; }
+        .plate-collected .plate-num-text { color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.5); }
+        
+        /* 掃描線 */
         .scanner-line { width: 100%; height: 4px; background: #fbbf24; box-shadow: 0 0 15px #fbbf24; position: absolute; top: 0; left: 0; animation: scan 1.5s linear infinite; z-index: 50; }
         @keyframes scan { 0% { top: 0; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
-        .exp-bar-fill { transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        .exp-bar-fill { transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
         input[type="file"] { display: none; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        #scan-preview { filter: contrast(1.2) brightness(1.1); transition: opacity 0.3s; }
-        .ai-glow { animation: ai-pulse 2s infinite; }
-        @keyframes ai-pulse { 0%, 100% { box-shadow: 0 0 5px #3b82f6; } 50% { box-shadow: 0 0 20px #3b82f6; } }
+        
+        .modal-bg { backdrop-filter: blur(8px); background: rgba(15, 23, 42, 0.8); }
     </style>
 </head>
 <body class="flex flex-col h-screen overflow-hidden">
 
-    <!-- 頂部資訊列 -->
-    <header class="bg-slate-800 border-b border-slate-700 p-3 shadow-lg z-20 flex-shrink-0">
-        <div class="flex justify-between items-center mb-2">
-            <h1 class="text-xl font-black text-blue-400 tracking-wider flex items-center gap-2">
-                車牌探險家 <span class="text-[10px] bg-blue-600 px-1.5 py-0.5 rounded text-white ai-glow">AI VISION</span>
-            </h1>
-            <div id="status-tag" class="text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-700">準備就緒</div>
+    <!-- 頂部資訊列 (成就系統) -->
+    <header class="bg-slate-800 border-b border-slate-700 p-4 shadow-xl z-20 flex-shrink-0">
+        <div class="flex justify-between items-start mb-3">
+            <div>
+                <h1 class="text-2xl font-black text-blue-400 tracking-tighter flex items-center gap-2">
+                    車牌探險家 <span class="text-[10px] bg-amber-500 px-1.5 py-0.5 rounded text-black font-bold">AI PRO</span>
+                </h1>
+                <p class="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-tech">License Plate Collector System</p>
+            </div>
+            <button onclick="toggleSettings()" class="bg-slate-700 p-2 rounded-full text-slate-300 hover:bg-slate-600 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            </button>
         </div>
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center border-2 border-blue-300 font-tech text-lg shadow-inner" id="ui-level">1</div>
+        
+        <div class="flex items-center gap-4 bg-slate-900/50 p-3 rounded-xl border border-slate-700">
+            <div class="relative">
+                <div class="w-14 h-14 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center border-2 border-white/20 font-tech text-2xl font-black italic shadow-lg" id="ui-level">1</div>
+                <div class="absolute -bottom-1 -right-1 bg-amber-500 text-[8px] font-bold text-black px-1 rounded border border-slate-900">LV</div>
+            </div>
             <div class="flex-1">
-                <div class="flex justify-between items-end mb-1">
-                    <span class="text-xs font-bold text-amber-400" id="ui-title">見習探險家</span>
+                <div class="flex justify-between items-center mb-1.5">
+                    <span class="text-sm font-bold text-amber-400 tracking-wide" id="ui-title">見習探險家</span>
                     <span class="text-[10px] text-slate-400 font-tech" id="ui-exp-text">0 / 100 EXP</span>
                 </div>
-                <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-700">
-                    <div id="ui-exp-bar" class="bg-gradient-to-r from-blue-500 to-cyan-400 h-full exp-bar-fill" style="width: 0%"></div>
+                <div class="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700 p-[1px]">
+                    <div id="ui-exp-bar" class="bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500 h-full rounded-full exp-bar-fill" style="width: 0%"></div>
                 </div>
             </div>
         </div>
     </header>
 
-    <!-- 操作面板 -->
-    <div class="bg-slate-800/80 p-2 border-b border-slate-700 flex-shrink-0 shadow-md">
-        <div class="flex gap-2 mb-2">
-            <label class="flex-1 bg-gradient-to-b from-blue-500 to-blue-700 text-white font-bold py-3 px-2 rounded-lg cursor-pointer flex flex-col items-center justify-center active:scale-95 transition shadow-lg border-b-4 border-blue-900">
-                <div class="flex items-center gap-2 text-sm">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    啟動 AI 拍照
+    <!-- 操作面板 (按鈕及分頁) -->
+    <div class="bg-slate-800/80 p-3 border-b border-slate-700 flex-shrink-0">
+        <div class="flex gap-3 mb-3">
+            <label class="flex-1 bg-gradient-to-b from-blue-500 to-blue-700 text-white font-bold py-4 px-2 rounded-xl cursor-pointer flex flex-col items-center justify-center active:scale-95 transition shadow-lg border-b-4 border-blue-900">
+                <div class="flex items-center gap-2 text-base">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    AI 拍照辨識
                 </div>
                 <input type="file" accept="image/*" capture="environment" onchange="handleImageUpload(event)">
             </label>
-            
-            <label class="flex-1 bg-slate-700 text-white font-bold py-3 px-2 rounded-lg cursor-pointer flex flex-col items-center justify-center active:scale-95 transition border border-slate-500">
-                <div class="flex items-center gap-2 text-sm">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                    從相簿匯入
-                </div>
+            <label class="w-20 bg-slate-700 text-white font-bold py-4 rounded-xl cursor-pointer flex items-center justify-center active:scale-95 transition border border-slate-500">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 <input type="file" accept="image/*" onchange="handleImageUpload(event)">
             </label>
         </div>
@@ -73,47 +94,78 @@
     </div>
 
     <!-- 主顯示區 -->
-    <main class="flex-1 overflow-y-auto p-3 relative" id="main-content">
+    <main class="flex-1 overflow-y-auto p-4 relative bg-slate-900" id="main-content">
         <!-- 掃描中遮罩 -->
-        <div id="scanning-overlay" class="hidden absolute inset-0 bg-slate-900/95 z-40 flex flex-col items-center justify-center p-6">
-            <div class="relative w-full max-w-[300px] aspect-[4/3] border-2 border-amber-500 rounded-lg overflow-hidden mb-6 bg-black shadow-[0_0_30px_rgba(251,191,36,0.3)]">
-                <img id="scan-preview" class="w-full h-full object-contain opacity-70">
+        <div id="scanning-overlay" class="hidden absolute inset-0 bg-slate-950/95 z-40 flex flex-col items-center justify-center p-8">
+            <div class="relative w-full max-w-[320px] aspect-[4/3] border-4 border-amber-500/50 rounded-2xl overflow-hidden mb-8 bg-black shadow-[0_0_50px_rgba(251,191,36,0.2)]">
+                <img id="scan-preview" class="w-full h-full object-contain opacity-60">
                 <div class="scanner-line"></div>
-                <div class="absolute top-2 right-2 bg-amber-500 text-black text-[10px] px-1 font-bold rounded">AI 深度分析中</div>
+                <div class="absolute top-4 left-4 flex gap-2">
+                    <span class="animate-ping h-2 w-2 rounded-full bg-red-500"></span>
+                    <span class="text-[10px] text-red-500 font-bold font-tech">AI LIVE ANALYSIS</span>
+                </div>
             </div>
-            <p class="text-amber-400 text-xs font-tech tracking-widest animate-pulse mb-2" id="scan-status">DEEP SCANNING...</p>
-            <div class="w-full max-w-[300px] bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                <div id="scan-progress" class="bg-amber-500 h-full w-0 transition-all duration-300"></div>
+            <p class="text-amber-400 text-sm font-tech tracking-[0.3em] animate-pulse mb-3" id="scan-status">SYNCING WITH GEMINI...</p>
+            <div class="w-full max-w-[320px] bg-slate-800 h-2 rounded-full overflow-hidden p-[2px]">
+                <div id="scan-progress" class="bg-amber-500 h-full w-0 transition-all duration-300 rounded-full"></div>
             </div>
-            <div class="mt-4 text-slate-500 text-[10px] text-center">正在調用 Gemini 2.5 視覺模型進行車牌校準...</div>
         </div>
-        <div id="grid-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 pb-20"></div>
+
+        <!-- 卡片網格 -->
+        <div id="grid-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 pb-12"></div>
     </main>
 
+    <!-- 設定彈窗 -->
+    <div id="settings-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-6 modal-bg">
+        <div class="bg-slate-800 border border-slate-600 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl">
+            <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800/50">
+                <h2 class="text-xl font-bold text-white">探險家設定</h2>
+                <button onclick="toggleSettings()" class="text-slate-400">✕</button>
+            </div>
+            <div class="p-6 space-y-6">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-400 mb-3 uppercase tracking-widest">資料管理</h3>
+                    <button onclick="resetData()" class="w-full bg-red-500/10 text-red-500 border border-red-500/50 py-3 rounded-xl font-bold active:bg-red-500 active:text-white transition">重置所有圖鑑資料</button>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-slate-400 mb-3 uppercase tracking-widest">辨識引擎</h3>
+                    <div class="flex items-center justify-between bg-slate-900/50 p-3 rounded-xl">
+                        <span class="text-sm text-slate-300">Gemini 2.5 Flash</span>
+                        <span class="text-[10px] bg-green-500 text-white px-2 py-0.5 rounded-full font-bold">已連線</span>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 bg-slate-900/50 text-center text-[10px] text-slate-500">
+                SYSTEM VERSION: 5.2.0-STABLE
+            </div>
+        </div>
+    </div>
+
 <script>
-    const apiKey = ""; // 執行環境會自動提供
+    const apiKey = "";
     const ENG3_DICT = { 
-        "CIA": "情報局", "FBI": "聯邦調查局", "CAI": "青菜(諧音)", "BAD": "壞人", "GOD": "神明", "SOS": "求助", "WWW": "網路",
-        "VIP": "貴賓", "WOW": "驚嘆", "YES": "確定", "ATM": "提款機", "CEO": "執行長", "CFO": "財務長"
+        "CIA": "情報局", "FBI": "聯邦局", "CAI": "青菜(音)", "BAD": "壞人", "GOD": "上帝", "SOS": "求救", "WWW": "網路",
+        "VIP": "貴賓", "WOW": "驚嘆", "YES": "成功", "ATM": "提款機", "CEO": "總經理", "CFO": "財務長", "APP": "應用程式"
     };
-    const ENG2_DICT = { "AI": "人工智慧", "FB": "臉書", "OK": "沒問題", "GG": "完蛋", "UI": "介面" };
+    const ENG2_DICT = { "AI": "人工智慧", "FB": "臉書", "OK": "好", "GG": "完蛋", "UI": "介面", "IG": "照片牆" };
 
     const GAME_STATE = { 
-        collected: new Set(), 
-        exp: 0, 
-        level: 1, 
-        currentTab: 'num4', 
-        currentPage: 1 
+        collected: new Set(JSON.parse(localStorage.getItem('collected') || '[]')), 
+        exp: parseInt(localStorage.getItem('exp') || '0'), 
+        level: parseInt(localStorage.getItem('level') || '1'), 
+        currentTab: 'num4'
     };
 
     const TABS = [
-        { id: 'num4', label: '4位數字', type: 'num', len: 4, count: 10000, pageSize: 60 },
-        { id: 'num3', label: '3位數字', type: 'num', len: 3, count: 1000, pageSize: 60 },
-        { id: 'eng3', label: '3位英文', type: 'eng', dict: ENG3_DICT, pageSize: 60 },
-        { id: 'eng2', label: '2位英文', type: 'eng', dict: ENG2_DICT, pageSize: 60 }
+        { id: 'num4', label: '4位數', type: 'num', len: 4, pageSize: 40 },
+        { id: 'num3', label: '3位數', type: 'num', len: 3, pageSize: 40 },
+        { id: 'eng3', label: '3位英文', type: 'eng', dict: ENG3_DICT },
+        { id: 'eng2', label: '2位英文', type: 'eng', dict: ENG2_DICT }
     ];
 
-    // --- 高精度 AI 辨識邏輯 ---
+    const TITLES = ["見習探險家", "街頭掃描者", "數字獵人", "車牌大師", "傳說收藏家"];
+
+    // --- 高精度 AI 辨識 ---
     async function handleImageUpload(e) {
         const file = e.target.files[0]; if(!file) return;
         const overlay = document.getElementById('scanning-overlay');
@@ -123,27 +175,24 @@
         
         preview.src = URL.createObjectURL(file);
         overlay.classList.remove('hidden');
-        statusText.innerText = "正在傳送 AI 視覺雲端...";
+        statusText.innerText = "UPLOADING IMAGE...";
         progressBar.style.width = "30%";
 
         try {
-            // 將圖片轉為 base64
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = async () => {
                 const base64Data = reader.result.split(',')[1];
-                
                 progressBar.style.width = "60%";
-                statusText.innerText = "Gemini AI 辨識中...";
+                statusText.innerText = "AI BRAIN ANALYZING...";
 
-                // 使用 Gemini 2.5 Flash 進行視覺辨識
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contents: [{
                             parts: [
-                                { text: "這是一張車牌照片。請精確找出照片中的所有車牌號碼。請只列出號碼部分，例如 'ABC-1234' 或 '123-456'。如果有多個請用逗號隔開。請確保辨識準確，排除周邊雜訊文字。" },
+                                { text: "這是一張台灣車牌照片。請找出號碼並僅回傳號碼部分，例如 '1234' 或 'ABC'。若多組請用逗號。請精準辨識數字與字母。" },
                                 { inlineData: { mimeType: "image/png", data: base64Data } }
                             ]
                         }]
@@ -152,59 +201,62 @@
 
                 const result = await response.json();
                 const aiText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                
                 progressBar.style.width = "90%";
-                statusText.innerText = "結果分析與比對...";
+                statusText.innerText = "MATCHING DATABASE...";
 
-                // 解析 AI 回傳的字串
                 const matches = aiText.match(/[A-Z0-9]{2,4}/g) || [];
-                let found = 0;
+                let foundCount = 0;
                 
                 matches.forEach(p => {
-                    if(p.length === 4 && /^\d+$/.test(p)) { collect(`NUM4_${p}`); found++; }
-                    else if(p.length === 3 && /^\d+$/.test(p)) { collect(`NUM3_${p}`); found++; }
-                    else if(p.length === 3 && ENG3_DICT[p]) { collect(`ENG3_${p}`); found++; }
-                    else if(p.length === 2 && ENG2_DICT[p]) { collect(`ENG2_${p}`); found++; }
+                    const clean = p.toUpperCase();
+                    if(clean.length === 4 && /^\d+$/.test(clean)) { collect(`NUM4_${clean}`); foundCount++; }
+                    else if(clean.length === 3 && /^\d+$/.test(clean)) { collect(`NUM3_${clean}`); foundCount++; }
+                    else if(clean.length === 3 && ENG3_DICT[clean]) { collect(`ENG3_${clean}`); foundCount++; }
+                    else if(clean.length === 2 && ENG2_DICT[clean]) { collect(`ENG2_${clean}`); foundCount++; }
                 });
 
                 progressBar.style.width = "100%";
                 setTimeout(() => {
                     overlay.classList.add('hidden');
-                    if(found > 0) {
-                        document.getElementById('status-tag').innerText = `最近辨識成功: ${found} 項`;
-                        renderTabs(); renderGrid();
-                    } else {
-                        document.getElementById('status-tag').innerText = "辨識失敗，請嘗試更清晰的角度";
-                    }
-                }, 400);
+                    renderGrid();
+                }, 500);
             };
-        } catch(err) {
-            console.error("AI辨識錯誤:", err);
-            overlay.classList.add('hidden');
-        }
+        } catch(err) { overlay.classList.add('hidden'); }
         e.target.value = '';
     }
 
     function collect(id) { 
         if(!GAME_STATE.collected.has(id)) {
             GAME_STATE.collected.add(id); 
-            addExp(50); // AI 辨識給更多經驗
+            addExp(35);
+            saveData();
         }
     }
 
     function addExp(v) { 
         GAME_STATE.exp += v; 
-        if(GAME_STATE.exp >= GAME_STATE.level*100){ 
-            GAME_STATE.exp -= GAME_STATE.level*100; 
+        const nextLevelExp = GAME_STATE.level * 100;
+        if(GAME_STATE.exp >= nextLevelExp){ 
+            GAME_STATE.exp -= nextLevelExp; 
             GAME_STATE.level++; 
         } 
         updateUI(); 
+        saveData();
+    }
+
+    function saveData() {
+        localStorage.setItem('collected', JSON.stringify(Array.from(GAME_STATE.collected)));
+        localStorage.setItem('exp', GAME_STATE.exp);
+        localStorage.setItem('level', GAME_STATE.level);
     }
     
     function updateUI() {
         document.getElementById('ui-level').innerText = GAME_STATE.level;
-        document.getElementById('ui-exp-text').innerText = `${GAME_STATE.exp} / ${GAME_STATE.level*100} EXP`;
-        document.getElementById('ui-exp-bar').style.width = `${(GAME_STATE.exp/(GAME_STATE.level*100))*100}%`;
+        const nextLevelExp = GAME_STATE.level * 100;
+        document.getElementById('ui-exp-text').innerText = `${GAME_STATE.exp} / ${nextLevelExp} EXP`;
+        document.getElementById('ui-exp-bar').style.width = `${(GAME_STATE.exp / nextLevelExp) * 100}%`;
+        const titleIdx = Math.min(Math.floor((GAME_STATE.level - 1) / 2), TITLES.length - 1);
+        document.getElementById('ui-title').innerText = TITLES[titleIdx];
     }
 
     function renderTabs() {
@@ -213,7 +265,7 @@
         TABS.forEach(t => {
             const active = GAME_STATE.currentTab === t.id;
             const btn = document.createElement('button');
-            btn.className = `flex-shrink-0 px-4 py-2 rounded-lg text-xs font-bold transition ${active ? 'bg-blue-600 text-white' : 'bg-slate-900 text-slate-500'}`;
+            btn.className = `flex-shrink-0 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${active ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'bg-slate-900 text-slate-500'}`;
             btn.innerText = t.label;
             btn.onclick = () => { GAME_STATE.currentTab = t.id; renderTabs(); renderGrid(); };
             container.appendChild(btn);
@@ -227,8 +279,9 @@
         
         let items = [];
         if(tab.type === 'num') {
-            const start = (GAME_STATE.currentPage - 1) * tab.pageSize;
-            for(let i=start; i<start+tab.pageSize; i++) {
+            // 只顯示鄰近號碼或已收集號碼
+            const start = 0; 
+            for(let i=0; i<tab.pageSize; i++) {
                 const s = String(i).padStart(tab.len, '0');
                 items.push({ id: `${tab.id.toUpperCase()}_${s}`, text: s });
             }
@@ -239,10 +292,26 @@
         items.forEach(item => {
             const collected = GAME_STATE.collected.has(item.id);
             const div = document.createElement('div');
-            div.className = `plate-box rounded p-2 flex flex-col items-center justify-center aspect-[2.2/1] ${collected ? 'plate-collected' : 'plate-uncollected'}`;
-            div.innerHTML = `<div class="text-[8px] font-tech plate-text">${item.text}</div>${item.trans ? `<div class="text-[8px] mt-1 opacity-60">${item.trans}</div>`:''}`;
+            div.className = `plate-box rounded-2xl p-4 flex flex-col items-center justify-center aspect-[1.8/1] ${collected ? 'plate-collected' : 'plate-uncollected'}`;
+            div.innerHTML = `
+                <div class="plate-num-text font-tech plate-text">${item.text}</div>
+                ${item.trans ? `<div class="text-xs mt-1 text-slate-400 font-bold">${item.trans}</div>`:''}
+                ${collected ? '<div class="absolute top-1 right-1 text-amber-500"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg></div>' : ''}
+            `;
             container.appendChild(div);
         });
+    }
+
+    function toggleSettings() {
+        const modal = document.getElementById('settings-modal');
+        modal.classList.toggle('hidden');
+    }
+
+    function resetData() {
+        if(confirm("確定要重置所有收集資料與經驗值嗎？這將無法復原。")) {
+            localStorage.clear();
+            location.reload();
+        }
     }
 
     window.onload = () => { renderTabs(); renderGrid(); updateUI(); };
