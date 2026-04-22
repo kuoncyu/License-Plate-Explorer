@@ -56,7 +56,7 @@
         <label class="w-full mb-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-2 px-4 rounded-lg cursor-pointer flex items-center justify-center gap-2 active:scale-95 transition text-sm">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
             拍照 / 匯入辨識車牌
-            <input type="file" accept="image/*" capture="environment" onchange="handleImageUpload(event)">
+            <input type="file" accept="image/*" onchange="handleImageUpload(event)">
         </label>
         
         <div class="flex overflow-x-auto gap-2 pb-1 no-scrollbar" id="tab-container"></div>
@@ -139,6 +139,8 @@
 
     // --- 音效核心 ---
     let audioCtx, mainGain, bgmInterval;
+    let bgmStep = 0;
+
     function initAudio() {
         if(!audioCtx) {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -147,15 +149,33 @@
             mainGain.connect(audioCtx.destination);
         }
     }
-    function playSound(f1, f2, dur, type='sine') {
+
+    function playTone(freq, type, dur, vol, delay=0) {
         initAudio(); if(audioCtx.state === 'suspended') audioCtx.resume();
         const osc = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        osc.type = type; osc.frequency.setValueAtTime(f1, audioCtx.currentTime);
-        if(f2) osc.frequency.exponentialRampToValueAtTime(f2, audioCtx.currentTime + dur);
-        g.gain.setValueAtTime(0.2, audioCtx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
-        osc.connect(g); g.connect(mainGain); osc.start(); osc.stop(audioCtx.currentTime + dur);
+        const gain = audioCtx.createGain();
+        osc.type = type; osc.frequency.value = freq;
+        osc.connect(gain); gain.connect(mainGain);
+        const t = audioCtx.currentTime + delay;
+        osc.start(t);
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(vol, t + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        osc.stop(t + dur);
+    }
+
+    function playSuccessSound() {
+        playTone(440, 'sine', 0.3, 0.3, 0);
+        playTone(554, 'sine', 0.3, 0.3, 0.1);
+        playTone(659, 'sine', 0.4, 0.3, 0.2);
+        playTone(880, 'sine', 0.6, 0.3, 0.3);
+    }
+
+    function playAchievementSound() {
+        playTone(523.25, 'square', 0.2, 0.2, 0);
+        playTone(659.25, 'square', 0.2, 0.2, 0.15);
+        playTone(783.99, 'square', 0.2, 0.2, 0.3);
+        playTone(1046.50, 'square', 0.6, 0.2, 0.45);
     }
 
     // --- 核心邏輯 ---
@@ -177,7 +197,7 @@
         const req = GAME_STATE.level * 100;
         if(GAME_STATE.exp >= req) {
             GAME_STATE.exp -= req; GAME_STATE.level++;
-            playSound(440, 880, 0.5, 'square');
+            playAchievementSound();
             showToast(`等級提升！目前 Lv.${GAME_STATE.level}`);
         }
         updateUI();
@@ -218,7 +238,10 @@
             ACHIEVEMENTS.forEach(a => {
                 const div = document.createElement('div');
                 div.className = "col-span-2 bg-slate-800 p-2 rounded border border-slate-700 text-[10px] flex justify-between items-center";
-                div.innerHTML = `<div><div class="font-bold">探索成就 ${a.id}</div><div class="text-slate-500">完成特定挑戰領取</div></div><button onclick="claimAch(${a.id})" class="bg-blue-600 px-2 py-1 rounded text-white">領取</button>`;
+                const btnHtml = a.claimed 
+                    ? `<button class="bg-slate-600 px-2 py-1 rounded text-slate-400 cursor-not-allowed" disabled>已領取</button>`
+                    : `<button onclick="claimAch(${a.id})" class="bg-blue-600 px-2 py-1 rounded text-white active:bg-blue-700">領取</button>`;
+                div.innerHTML = `<div><div class="font-bold">探索成就 ${a.id}</div><div class="text-slate-500">完成特定挑戰領取</div></div>${btnHtml}`;
                 container.appendChild(div);
             });
             return;
@@ -255,27 +278,53 @@
     async function handleImageUpload(e) {
         const file = e.target.files[0]; if(!file) return;
         const overlay = document.getElementById('scanning-overlay');
+        const statusText = document.getElementById('scan-status');
         document.getElementById('scan-preview').src = URL.createObjectURL(file);
         overlay.classList.remove('hidden');
+        statusText.innerText = "初始化掃描引擎...";
         
         try {
-            const res = await Tesseract.recognize(file, 'eng');
-            const text = res.data.text.toUpperCase();
-            const matches = text.match(/[A-Z0-9]{2,4}/g) || [];
+            const res = await Tesseract.recognize(file, 'eng', {
+                logger: m => {
+                    if (m.status === 'recognizing text') {
+                        statusText.innerText = `辨識中... ${Math.round(m.progress * 100)}%`;
+                    }
+                }
+            });
+            const text = res.data.text.toUpperCase().replace(/[^A-Z0-9]/g, '');
             let count = 0;
-            matches.forEach(m => {
+            
+            const letters = text.match(/[A-Z]{2,3}/g) || [];
+            const numbers = text.match(/[0-9]{3,4}/g) || [];
+
+            letters.forEach(m => {
                 let id = '';
-                if(/^[0-9]{4}$/.test(m)) id = `NUM4_${m}`;
-                else if(/^[0-9]{3}$/.test(m)) id = `NUM3_${m}`;
-                else if(ENG3_DICT[m]) id = `ENG3_${m}`;
-                else if(ENG2_DICT[m]) id = `ENG2_${m}`;
-                
+                if(m.length === 3 && ENG3_DICT[m]) id = `ENG3_${m}`;
+                else if(m.length === 2 && ENG2_DICT[m]) id = `ENG2_${m}`;
                 if(id && !GAME_STATE.collected.has(id)) { GAME_STATE.collected.add(id); count++; addExp(20); }
             });
-            if(count > 0) { playSound(600, 1200, 0.2); showToast(`成功收集 ${count} 個車牌！`); renderTabs(); renderGrid(); }
-            else alert("未辨識到新的有效車牌。");
-        } catch(e) { alert("辨識發生錯誤"); }
+
+            numbers.forEach(m => {
+                let id = '';
+                if(m.length === 4) id = `NUM4_${m}`;
+                else if(m.length === 3) id = `NUM3_${m}`;
+                if(id && !GAME_STATE.collected.has(id)) { GAME_STATE.collected.add(id); count++; addExp(20); }
+            });
+
+            if(count > 0) { 
+                playSuccessSound(); 
+                showToast(`成功收集 ${count} 個車牌！`); 
+                renderTabs(); 
+                renderGrid(); 
+            } else { 
+                alert("未辨識到新的有效車牌。\n辨識參考: " + (text || "無")); 
+            }
+        } catch(e) { 
+            console.error(e);
+            alert("辨識發生錯誤，請重新嘗試。"); 
+        }
         overlay.classList.add('hidden');
+        e.target.value = ''; // Reset input
     }
 
     function showToast(m) {
@@ -299,10 +348,13 @@
         } else {
             GAME_STATE.isMusicPlaying = true;
             document.getElementById('musicBtn').classList.replace('text-slate-400', 'text-blue-400');
+            bgmStep = 0;
             bgmInterval = setInterval(() => {
-                const n = [261, 329, 392, 523][Math.floor(Math.random()*4)];
-                playSound(n, n, 0.4, 'sine');
-            }, 800);
+                const scale = [220, 246.94, 277.18, 329.63, 369.99, 440];
+                const freqs = [scale[0], scale[2], scale[4], scale[1], scale[3], scale[5]];
+                playTone(freqs[bgmStep % freqs.length], 'triangle', 0.8, 0.05);
+                bgmStep++;
+            }, 600);
         }
     }
 
@@ -311,14 +363,24 @@
         const rK = keys[Math.floor(Math.random()*2)];
         const word = rK[Math.floor(Math.random()*rK.length)];
         const num = String(Math.floor(Math.random()*9999)).padStart(4, '0');
-        handleImageUpload({ target: { files: [new File([""], "test.jpg")] } }); // Mock
         // 為了模擬效果直接加
         GAME_STATE.collected.add(`${word.length===3?'ENG3':'ENG2'}_${word}`);
         GAME_STATE.collected.add(`NUM4_${num}`);
-        addExp(50); renderTabs(); renderGrid(); showToast("模擬解鎖成功！");
+        addExp(50); 
+        playSuccessSound();
+        renderTabs(); renderGrid(); showToast("模擬解鎖成功！");
     }
 
-    function claimAch(id) { playSound(800, 1000, 0.1); addExp(100); showToast(`領取成就獎勵 +100 EXP`); }
+    function claimAch(id) { 
+        const ach = ACHIEVEMENTS.find(a => a.id === id);
+        if(ach && !ach.claimed) {
+            ach.claimed = true;
+            playAchievementSound(); 
+            addExp(ach.exp); 
+            showToast(`領取成就獎勵 +${ach.exp} EXP`); 
+            renderGrid();
+        }
+    }
 
     window.onload = init;
 </script>
