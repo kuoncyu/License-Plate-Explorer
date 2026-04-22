@@ -3,30 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>車牌探險家 - 專業版</title>
+    <title>車牌探險家 - AI 極限辨識版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Orbitron:wght@700&display=swap');
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #0f172a; color: #e2e8f0; overflow-x: hidden; user-select: none; }
         .font-tech { font-family: 'Orbitron', sans-serif; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #1e293b; }
-        ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 3px; }
         .plate-box { background: linear-gradient(145deg, #1e293b, #0f172a); border: 2px solid #334155; transition: all 0.3s ease; }
         .plate-uncollected { filter: grayscale(100%); opacity: 0.35; }
         .plate-collected { border-color: #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.4); background: linear-gradient(145deg, #334155, #1e293b); transform: scale(1.02); z-index: 10; }
         .plate-text { text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }
         .plate-collected .plate-text { color: #fbbf24; text-shadow: 0 0 8px rgba(251, 191, 36, 0.6); }
-        .scanner-line { width: 100%; height: 4px; background: #3b82f6; box-shadow: 0 0 10px #3b82f6; position: absolute; top: 0; left: 0; animation: scan 2s linear infinite; z-index: 50; }
+        .scanner-line { width: 100%; height: 4px; background: #fbbf24; box-shadow: 0 0 15px #fbbf24; position: absolute; top: 0; left: 0; animation: scan 1.5s linear infinite; z-index: 50; }
         @keyframes scan { 0% { top: 0; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
         .exp-bar-fill { transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
         input[type="file"] { display: none; }
-        .modal-overlay { backdrop-filter: blur(5px); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        
-        /* 預覽影像處理效果 */
-        #scan-preview { filter: contrast(1.4) brightness(1.1) grayscale(0.5); transition: opacity 0.3s; }
+        #scan-preview { filter: contrast(1.2) brightness(1.1); transition: opacity 0.3s; }
+        .ai-glow { animation: ai-pulse 2s infinite; }
+        @keyframes ai-pulse { 0%, 100% { box-shadow: 0 0 5px #3b82f6; } 50% { box-shadow: 0 0 20px #3b82f6; } }
     </style>
 </head>
 <body class="flex flex-col h-screen overflow-hidden">
@@ -34,12 +30,10 @@
     <!-- 頂部資訊列 -->
     <header class="bg-slate-800 border-b border-slate-700 p-3 shadow-lg z-20 flex-shrink-0">
         <div class="flex justify-between items-center mb-2">
-            <h1 class="text-xl font-black text-blue-400 tracking-wider">車牌探險家 <span class="text-[10px] bg-blue-900 px-1 rounded ml-1">v2.5 Pro</span></h1>
-            <div class="flex gap-2">
-                <button onclick="toggleMusic()" id="musicBtn" class="text-slate-400 p-1 transition-colors"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"></path></svg></button>
-                <button onclick="toggleFullscreen()" class="text-slate-400 p-1"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg></button>
-                <button onclick="openSettings()" class="text-slate-400 p-1"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg></button>
-            </div>
+            <h1 class="text-xl font-black text-blue-400 tracking-wider flex items-center gap-2">
+                車牌探險家 <span class="text-[10px] bg-blue-600 px-1.5 py-0.5 rounded text-white ai-glow">AI VISION</span>
+            </h1>
+            <div id="status-tag" class="text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-700">準備就緒</div>
         </div>
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center border-2 border-blue-300 font-tech text-lg shadow-inner" id="ui-level">1</div>
@@ -55,312 +49,71 @@
         </div>
     </header>
 
-    <!-- 操作面板 (分拆按鈕) -->
+    <!-- 操作面板 -->
     <div class="bg-slate-800/80 p-2 border-b border-slate-700 flex-shrink-0 shadow-md">
         <div class="flex gap-2 mb-2">
-            <label class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-2.5 px-2 rounded-lg cursor-pointer flex items-center justify-center gap-2 active:scale-95 transition text-xs shadow-lg shadow-blue-900/20">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                啟動相機拍照
+            <label class="flex-1 bg-gradient-to-b from-blue-500 to-blue-700 text-white font-bold py-3 px-2 rounded-lg cursor-pointer flex flex-col items-center justify-center active:scale-95 transition shadow-lg border-b-4 border-blue-900">
+                <div class="flex items-center gap-2 text-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    啟動 AI 拍照
+                </div>
                 <input type="file" accept="image/*" capture="environment" onchange="handleImageUpload(event)">
             </label>
-            <label class="flex-1 bg-slate-700 text-white font-bold py-2.5 px-2 rounded-lg cursor-pointer flex items-center justify-center gap-2 active:scale-95 transition text-xs border border-slate-600">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                從相簿匯入
+            
+            <label class="flex-1 bg-slate-700 text-white font-bold py-3 px-2 rounded-lg cursor-pointer flex flex-col items-center justify-center active:scale-95 transition border border-slate-500">
+                <div class="flex items-center gap-2 text-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    從相簿匯入
+                </div>
                 <input type="file" accept="image/*" onchange="handleImageUpload(event)">
             </label>
         </div>
         
         <div class="flex overflow-x-auto gap-2 pb-1 no-scrollbar" id="tab-container"></div>
-        
-        <div class="flex gap-2 mt-2 items-center">
-            <div class="relative flex-1">
-                <input type="text" id="search-input" placeholder="搜尋..." class="w-full bg-slate-900 border border-slate-600 rounded-lg py-1.5 pl-8 pr-3 text-xs text-white focus:outline-none focus:border-blue-500">
-                <svg class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-            </div>
-            <div class="flex items-center gap-1 bg-slate-900 border border-slate-600 rounded-lg px-1 py-0.5">
-                <button onclick="changePage(-1)" class="px-1 text-slate-400">&lt;</button>
-                <input type="number" id="page-input" value="1" class="w-8 bg-transparent text-center text-white text-[10px] focus:outline-none">
-                <span class="text-[10px] text-slate-500" id="total-pages">/ 1</span>
-                <button onclick="changePage(1)" class="px-1 text-slate-400">&gt;</button>
-            </div>
-        </div>
     </div>
 
     <!-- 主顯示區 -->
     <main class="flex-1 overflow-y-auto p-3 relative" id="main-content">
         <!-- 掃描中遮罩 -->
         <div id="scanning-overlay" class="hidden absolute inset-0 bg-slate-900/95 z-40 flex flex-col items-center justify-center p-6">
-            <div class="relative w-full max-w-[280px] aspect-[4/3] border-2 border-blue-500 rounded-lg overflow-hidden mb-6 bg-black shadow-[0_0_20px_rgba(59,130,246,0.3)]">
-                <img id="scan-preview" class="w-full h-full object-contain opacity-60">
+            <div class="relative w-full max-w-[300px] aspect-[4/3] border-2 border-amber-500 rounded-lg overflow-hidden mb-6 bg-black shadow-[0_0_30px_rgba(251,191,36,0.3)]">
+                <img id="scan-preview" class="w-full h-full object-contain opacity-70">
                 <div class="scanner-line"></div>
-                <div class="absolute bottom-2 left-2 text-[10px] text-blue-400 font-tech">AI_OCR_ENGINE_v5.0</div>
+                <div class="absolute top-2 right-2 bg-amber-500 text-black text-[10px] px-1 font-bold rounded">AI 深度分析中</div>
             </div>
-            <div class="w-full max-w-[280px] bg-slate-800 h-1.5 rounded-full overflow-hidden mb-2">
-                <div id="scan-progress" class="bg-blue-500 h-full w-0 transition-all duration-300"></div>
+            <p class="text-amber-400 text-xs font-tech tracking-widest animate-pulse mb-2" id="scan-status">DEEP SCANNING...</p>
+            <div class="w-full max-w-[300px] bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                <div id="scan-progress" class="bg-amber-500 h-full w-0 transition-all duration-300"></div>
             </div>
-            <p class="text-blue-400 text-xs font-tech tracking-widest animate-pulse" id="scan-status">ANALYZING SIGNAL...</p>
+            <div class="mt-4 text-slate-500 text-[10px] text-center">正在調用 Gemini 2.5 視覺模型進行車牌校準...</div>
         </div>
         <div id="grid-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 pb-20"></div>
     </main>
 
-    <!-- 設定視窗 -->
-    <div id="settings-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 modal-overlay">
-        <div class="bg-slate-800 border border-slate-600 rounded-xl w-full max-w-xs p-5 shadow-2xl relative">
-            <button onclick="closeSettings()" class="absolute top-3 right-3 text-slate-400">✕</button>
-            <h2 class="text-lg font-bold mb-4 text-blue-400">系統資訊</h2>
-            <div class="space-y-4 text-xs">
-                <div>
-                    <label class="flex justify-between text-slate-400 mb-1">音量 <span id="vol-display">50%</span></label>
-                    <input type="range" min="0" max="1" step="0.1" value="0.5" class="w-full" onchange="updateVolume(this.value)">
-                </div>
-                <div class="bg-slate-900 p-3 rounded border border-slate-700 text-slate-300 leading-relaxed">
-                    <p>開發者: 郭柏宏</p>
-                    <p>引擎: Tesseract.js x Gemini</p>
-                    <p>版本: 2026.04.22_V5_PRO</p>
-                    <p class="mt-2 text-blue-500 text-[10px]">提示: 拍攝時請對準車牌，光線充足辨識度更高。</p>
-                </div>
-                <button onclick="simulateScan()" class="w-full py-2 bg-slate-700 text-slate-400 rounded">測試: 隨機模擬解鎖</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 成就提示 -->
-    <div id="achievement-toast" class="fixed top-16 right-0 transform translate-x-full transition-transform duration-500 z-50 bg-amber-600 text-white px-4 py-2 rounded-l-lg shadow-xl flex items-center gap-2 border-l-4 border-amber-300">
-        <div class="text-xl">🏆</div>
-        <div>
-            <div class="text-[10px] opacity-80 font-bold uppercase">System Update!</div>
-            <div id="toast-title" class="text-xs font-bold">解鎖成功</div>
-        </div>
-    </div>
-
-    <!-- 用於預處理圖像的隱藏 Canvas -->
-    <canvas id="preprocess-canvas" class="hidden"></canvas>
-
 <script>
-    // --- 擴充詞彙庫 (增加有趣代碼) ---
+    const apiKey = ""; // 執行環境會自動提供
     const ENG3_DICT = { 
-        "CIA": "情報局", "FBI": "聯邦調查局", "CAI": "青菜(諧音)", "BAD": "壞人", "GOD": "神明", 
-        "ANT": "螞蟻", "ATM": "提款機", "TEA": "茶葉", "BUS": "公車", "CAR": "汽車", 
-        "CAT": "貓咪", "DOG": "狗狗", "SUN": "太陽", "VIP": "貴賓", "WOW": "驚嘆", 
-        "YES": "是的", "ZOO": "動物園", "AIR": "空氣", "BOY": "男孩", "CUP": "杯子", 
-        "DAY": "白天", "EYE": "眼睛", "FOX": "狐狸", "HAT": "帽子", "ICE": "冰塊", 
-        "JOB": "工作", "KEY": "鑰匙", "LOG": "日誌", "MAP": "地圖", "NET": "網路", 
-        "OUT": "外面", "PEN": "鋼筆", "RED": "紅色", "SKY": "天空", "TOP": "頂端", 
-        "FLY": "飛行", "FUN": "樂趣", "GYM": "健身", "HOT": "熱的", "JOY": "喜悅", 
-        "KID": "小孩", "MAD": "瘋狂", "NEW": "新的", "OLD": "老的", "PET": "寵物", 
-        "RUN": "跑步", "SAD": "悲傷", "TAX": "稅務", "WIN": "贏得", "WAR": "戰爭", 
-        "CEO": "執行長", "CFO": "財務長", "SOS": "求救信號", "WWW": "網際網路" 
+        "CIA": "情報局", "FBI": "聯邦調查局", "CAI": "青菜(諧音)", "BAD": "壞人", "GOD": "神明", "SOS": "求助", "WWW": "網路",
+        "VIP": "貴賓", "WOW": "驚嘆", "YES": "確定", "ATM": "提款機", "CEO": "執行長", "CFO": "財務長"
     };
-    const ENG2_DICT = { 
-        "AI": "人工智慧", "FB": "臉書", "AM": "上午", "FM": "調頻", "PM": "下午", 
-        "GU": "服飾品牌", "HI": "你好", "OK": "好", "GO": "去", "NO": "不", 
-        "UP": "上", "ON": "在...上", "ID": "身分", "IF": "如果", "OH": "喔", 
-        "YO": "喲", "AC": "交流電", "DC": "直流電", "UI": "介面", "UX": "體驗", 
-        "GG": "完蛋", "ZZ": "睡覺", "OS": "系統", "IP": "網路位址" 
-    };
+    const ENG2_DICT = { "AI": "人工智慧", "FB": "臉書", "OK": "沒問題", "GG": "完蛋", "UI": "介面" };
 
-    const TITLES = ["見習探險家", "街頭觀察員", "車牌獵人", "數據收集者", "尋寶達人", "菁英探險家", "傳奇大師", "道路先知", "視覺神經元", "車牌之神"];
     const GAME_STATE = { 
         collected: new Set(), 
         exp: 0, 
         level: 1, 
-        loginDays: 1, 
-        achievementsClaimed: new Set(), 
-        unlockedAchIds: new Set(), 
         currentTab: 'num4', 
-        currentPage: 1, 
-        searchQuery: '', 
-        volume: 0.5, 
-        isMusicPlaying: false 
+        currentPage: 1 
     };
 
     const TABS = [
         { id: 'num4', label: '4位數字', type: 'num', len: 4, count: 10000, pageSize: 60 },
         { id: 'num3', label: '3位數字', type: 'num', len: 3, count: 1000, pageSize: 60 },
         { id: 'eng3', label: '3位英文', type: 'eng', dict: ENG3_DICT, pageSize: 60 },
-        { id: 'eng2', label: '2位英文', type: 'eng', dict: ENG2_DICT, pageSize: 60 },
-        { id: 'achievements', label: '探索成就', type: 'special' }
+        { id: 'eng2', label: '2位英文', type: 'eng', dict: ENG2_DICT, pageSize: 60 }
     ];
 
-    const ACHIEVEMENTS = [];
-
-    // --- 音效與初始化 ---
-    let audioCtx, mainGain, bgmInterval;
-    let bgmStep = 0;
-
-    function initAudio() {
-        if(!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            mainGain = audioCtx.createGain();
-            mainGain.gain.value = GAME_STATE.volume;
-            mainGain.connect(audioCtx.destination);
-        }
-    }
-
-    function playTone(freq, type, dur, vol, delay=0) {
-        initAudio(); if(audioCtx.state === 'suspended') audioCtx.resume();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = type; osc.frequency.value = freq;
-        osc.connect(gain); gain.connect(mainGain);
-        const t = audioCtx.currentTime + delay;
-        osc.start(t);
-        gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(vol, t + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
-        osc.stop(t + dur);
-    }
-
-    function playSuccessSound() {
-        playTone(440, 'sine', 0.3, 0.3, 0);
-        playTone(554, 'sine', 0.3, 0.3, 0.1);
-        playTone(659, 'sine', 0.4, 0.3, 0.2);
-    }
-
-    function playAchievementSound() {
-        playTone(523.25, 'square', 0.15, 0.2, 0);
-        playTone(659.25, 'square', 0.15, 0.2, 0.1);
-        playTone(783.99, 'square', 0.15, 0.2, 0.2);
-        playTone(1046.50, 'square', 0.5, 0.2, 0.3);
-    }
-
-    // --- 核心功能 ---
-    function init() {
-        genAch(); 
-        checkAchievements();
-        renderTabs(); 
-        updateUI(); 
-        renderGrid();
-        document.getElementById('page-input').onchange = (e) => { GAME_STATE.currentPage = parseInt(e.target.value) || 1; renderGrid(); };
-        document.getElementById('search-input').oninput = (e) => { GAME_STATE.searchQuery = e.target.value.toUpperCase(); GAME_STATE.currentPage = 1; renderGrid(); };
-    }
-
-    function genAch() {
-        const specialCodes = ["8888", "1688", "5555", "9999", "6666", "1111", "1234", "CIA", "FBI", "CAI", "BAD", "GOD", "CEO", "SOS", "WWW", "VIP", "WOW", "YES", "USA", "DOG", "CAT", "WIN", "WAR", "ACE", "PRO", "UFO", "TEA", "ONE", "SIX", "TEN"];
-        specialCodes.forEach((code, i) => {
-            ACHIEVEMENTS.push({ 
-                id: i + 1, 
-                type: 'special', 
-                target: code, 
-                title: `發現寶藏: ${code}`, 
-                desc: `成功辨識出 "${code}" 相關車牌`,
-                exp: 100 
-            });
-        });
-        [10, 50, 100, 500].forEach((c, i) => {
-            ACHIEVEMENTS.push({ id: 100+i, type: 'count', target: c, title: `收藏達人: ${c}`, desc: `累計解鎖 ${c} 種組合`, exp: c * 5 });
-        });
-    }
-
-    function checkAchievements() {
-        let anyNew = false;
-        ACHIEVEMENTS.forEach(ach => {
-            if (GAME_STATE.achievementsClaimed.has(ach.id) || GAME_STATE.unlockedAchIds.has(ach.id)) return;
-            let conditionMet = false;
-            if (ach.type === 'special') {
-                for (let collectedId of GAME_STATE.collected) { if (collectedId.includes(ach.target)) { conditionMet = true; break; } }
-            } else if (ach.type === 'count') {
-                if (GAME_STATE.collected.size >= ach.target) conditionMet = true;
-            }
-            if (conditionMet) { GAME_STATE.unlockedAchIds.add(ach.id); anyNew = true; }
-        });
-        if (anyNew) { renderTabs(); if(GAME_STATE.currentTab === 'achievements') renderGrid(); }
-    }
-
-    function addExp(v) {
-        GAME_STATE.exp += v;
-        const req = GAME_STATE.level * 100;
-        if(GAME_STATE.exp >= req) {
-            GAME_STATE.exp -= req; GAME_STATE.level++;
-            playAchievementSound();
-            showToast(`等級提升！目前 Lv.${GAME_STATE.level}`);
-        }
-        checkAchievements();
-        updateUI();
-    }
-
-    function updateUI() {
-        document.getElementById('ui-level').innerText = GAME_STATE.level;
-        document.getElementById('ui-title').innerText = TITLES[Math.min(GAME_STATE.level-1, 9)];
-        const req = GAME_STATE.level * 100;
-        document.getElementById('ui-exp-text').innerText = `${GAME_STATE.exp} / ${req} EXP`;
-        document.getElementById('ui-exp-bar').style.width = `${(GAME_STATE.exp/req)*100}%`;
-    }
-
-    function renderTabs() {
-        const container = document.getElementById('tab-container');
-        container.innerHTML = '';
-        TABS.forEach(t => {
-            const active = GAME_STATE.currentTab === t.id;
-            let collected = 0;
-            if(t.type !== 'special') {
-                GAME_STATE.collected.forEach(id => { if(id.startsWith(t.id.toUpperCase())) collected++; });
-            }
-            const total = t.count || Object.keys(t.dict || {}).length;
-            const btn = document.createElement('button');
-            btn.className = `flex-shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold transition whitespace-nowrap border-2 ${active ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'bg-slate-900 border-transparent text-slate-500'}`;
-            
-            let extra = (t.type === 'special') ? 
-                (GAME_STATE.unlockedAchIds.size > 0 ? `<span class="ml-1 px-1.5 bg-red-500 text-white rounded-full text-[9px] animate-pulse">${GAME_STATE.unlockedAchIds.size}</span>` : '') : 
-                `<span class="opacity-50 ml-1">${Math.floor((collected/total)*100)}%</span>`;
-            
-            btn.innerHTML = `${t.label} ${extra}`;
-            btn.onclick = () => { GAME_STATE.currentTab = t.id; GAME_STATE.currentPage = 1; renderTabs(); renderGrid(); };
-            container.appendChild(btn);
-        });
-    }
-
-    function renderGrid() {
-        const container = document.getElementById('grid-container');
-        container.innerHTML = '';
-        const tab = TABS.find(t => t.id === GAME_STATE.currentTab);
-        
-        if(tab.type === 'special') {
-            ACHIEVEMENTS.forEach(a => {
-                const isClaimed = GAME_STATE.achievementsClaimed.has(a.id);
-                const isUnlocked = GAME_STATE.unlockedAchIds.has(a.id);
-                const div = document.createElement('div');
-                div.className = `col-span-2 p-2 rounded border text-[10px] flex justify-between items-center ${isUnlocked ? 'bg-blue-900/30 border-blue-500' : 'bg-slate-800 border-slate-700'}`;
-                div.innerHTML = `<div class="flex-1 pr-2">
-                    <div class="font-bold ${isUnlocked ? 'text-blue-300' : 'text-slate-300'}">${a.title}</div>
-                    <div class="text-[9px] text-slate-500">${a.desc}</div>
-                </div>
-                ${isClaimed ? '<span class="text-slate-500">已領</span>' : (isUnlocked ? `<button onclick="claimAch(${a.id})" class="bg-amber-500 px-2 py-1 rounded text-black font-bold">領取</button>` : '<span class="text-slate-700">鎖定</span>')}`;
-                container.appendChild(div);
-            });
-            return;
-        }
-
-        let items = [];
-        if(tab.type === 'num') {
-            const start = (GAME_STATE.currentPage - 1) * tab.pageSize;
-            const end = Math.min(start + tab.pageSize, tab.count);
-            for(let i=start; i<end; i++) {
-                const s = String(i).padStart(tab.len, '0');
-                if(!GAME_STATE.searchQuery || s.includes(GAME_STATE.searchQuery)) items.push({ id: `${tab.id.toUpperCase()}_${s}`, text: s });
-            }
-        } else {
-            Object.entries(tab.dict).forEach(([k, v]) => {
-                if(!GAME_STATE.searchQuery || k.includes(GAME_STATE.searchQuery) || v.includes(GAME_STATE.searchQuery))
-                    items.push({ id: `${tab.id.toUpperCase()}_${k}`, text: k, trans: v });
-            });
-            items = items.slice((GAME_STATE.currentPage-1)*tab.pageSize, GAME_STATE.currentPage*tab.pageSize);
-        }
-
-        items.forEach(item => {
-            const collected = GAME_STATE.collected.has(item.id);
-            const div = document.createElement('div');
-            div.className = `plate-box rounded p-2 flex flex-col items-center justify-center aspect-[2.2/1] ${collected ? 'plate-collected' : 'plate-uncollected'}`;
-            div.innerHTML = `<div class="text-[7px] opacity-30 uppercase tracking-tighter">TAIWAN ROC</div><div class="text-lg font-black font-tech plate-text leading-none">${item.text}</div>${item.trans ? `<div class="text-[8px] mt-1 bg-black/40 px-1 rounded truncate max-w-full">${item.trans}</div>`:''}`;
-            container.appendChild(div);
-        });
-
-        const totalItems = tab.count || Object.keys(tab.dict).length;
-        document.getElementById('total-pages').innerText = `/ ${Math.ceil(totalItems/tab.pageSize)}`;
-        document.getElementById('page-input').value = GAME_STATE.currentPage;
-    }
-
-    // --- OCR 核心優化 ---
+    // --- 高精度 AI 辨識邏輯 ---
     async function handleImageUpload(e) {
         const file = e.target.files[0]; if(!file) return;
         const overlay = document.getElementById('scanning-overlay');
@@ -370,144 +123,129 @@
         
         preview.src = URL.createObjectURL(file);
         overlay.classList.remove('hidden');
-        statusText.innerText = "訊號初始化...";
-        progressBar.style.width = "10%";
+        statusText.innerText = "正在傳送 AI 視覺雲端...";
+        progressBar.style.width = "30%";
 
-        // 影像預處理：提升對比度與灰階
-        const processedBlob = await preprocessImage(file);
-        
         try {
-            statusText.innerText = "載入分析矩陣...";
-            progressBar.style.width = "30%";
-            
-            const worker = await Tesseract.createWorker('eng');
-            
-            statusText.innerText = "深度語法解析中...";
-            const res = await worker.recognize(processedBlob);
-            
-            // 強力過濾與修復
-            // 修正 OCR 常見錯誤：如 '0' 被辨識為 'O'，'1' 被辨識為 'I' 等
-            let text = res.data.text.toUpperCase();
-            
-            // 智慧清洗雜訊
-            const cleaned = text.replace(/[^A-Z0-9]/g, ' ');
-            const parts = cleaned.split(/\s+/);
-            
-            let count = 0;
-            parts.forEach(p => {
-                // 處理數字 (4碼或3碼)
-                if(/^[0-9OQI]{3,4}$/.test(p)) {
-                    let num = p.replace(/O|Q/g, '0').replace(/I/g, '1');
-                    if(num.length === 4) { collect(`NUM4_${num}`); count++; }
-                    else if(num.length === 3) { collect(`NUM3_${num}`); count++; }
-                }
-                // 處理英文 (3碼或2碼)
-                if(/^[A-Z01]{2,3}$/.test(p)) {
-                    let eng = p.replace(/0/g, 'O').replace(/1/g, 'I');
-                    if(eng.length === 3 && ENG3_DICT[eng]) { collect(`ENG3_${eng}`); count++; }
-                    else if(eng.length === 2 && ENG2_DICT[eng]) { collect(`ENG2_${eng}`); count++; }
-                }
-            });
+            // 將圖片轉為 base64
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = async () => {
+                const base64Data = reader.result.split(',')[1];
+                
+                progressBar.style.width = "60%";
+                statusText.innerText = "Gemini AI 辨識中...";
 
-            progressBar.style.width = "100%";
-            setTimeout(() => {
-                overlay.classList.add('hidden');
-                if(count > 0) {
-                    playSuccessSound();
-                    showToast(`掃描成功！解鎖 ${count} 個代碼`);
-                    renderTabs(); renderGrid();
-                } else {
-                    showToast("未偵測到有效車牌組合");
-                }
-            }, 500);
+                // 使用 Gemini 2.5 Flash 進行視覺辨識
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: "這是一張車牌照片。請精確找出照片中的所有車牌號碼。請只列出號碼部分，例如 'ABC-1234' 或 '123-456'。如果有多個請用逗號隔開。請確保辨識準確，排除周邊雜訊文字。" },
+                                { inlineData: { mimeType: "image/png", data: base64Data } }
+                            ]
+                        }]
+                    })
+                });
 
-            await worker.terminate();
+                const result = await response.json();
+                const aiText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                
+                progressBar.style.width = "90%";
+                statusText.innerText = "結果分析與比對...";
+
+                // 解析 AI 回傳的字串
+                const matches = aiText.match(/[A-Z0-9]{2,4}/g) || [];
+                let found = 0;
+                
+                matches.forEach(p => {
+                    if(p.length === 4 && /^\d+$/.test(p)) { collect(`NUM4_${p}`); found++; }
+                    else if(p.length === 3 && /^\d+$/.test(p)) { collect(`NUM3_${p}`); found++; }
+                    else if(p.length === 3 && ENG3_DICT[p]) { collect(`ENG3_${p}`); found++; }
+                    else if(p.length === 2 && ENG2_DICT[p]) { collect(`ENG2_${p}`); found++; }
+                });
+
+                progressBar.style.width = "100%";
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                    if(found > 0) {
+                        document.getElementById('status-tag').innerText = `最近辨識成功: ${found} 項`;
+                        renderTabs(); renderGrid();
+                    } else {
+                        document.getElementById('status-tag').innerText = "辨識失敗，請嘗試更清晰的角度";
+                    }
+                }, 400);
+            };
         } catch(err) {
-            console.error(err);
-            showToast("掃描系統異常");
+            console.error("AI辨識錯誤:", err);
             overlay.classList.add('hidden');
         }
         e.target.value = '';
     }
 
-    // 圖像預處理函式：利用隱藏 Canvas 處理圖像，提高辨識度
-    function preprocessImage(file) {
-        return new Promise((resolve) => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.getElementById('preprocess-canvas');
-                const ctx = canvas.getContext('2d');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                
-                // 繪製並應用灰階與高對比
-                ctx.filter = 'grayscale(1) contrast(1.5) brightness(1.2)';
-                ctx.drawImage(img, 0, 0);
-                
-                canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.9);
-            };
-            img.src = URL.createObjectURL(file);
+    function collect(id) { 
+        if(!GAME_STATE.collected.has(id)) {
+            GAME_STATE.collected.add(id); 
+            addExp(50); // AI 辨識給更多經驗
+        }
+    }
+
+    function addExp(v) { 
+        GAME_STATE.exp += v; 
+        if(GAME_STATE.exp >= GAME_STATE.level*100){ 
+            GAME_STATE.exp -= GAME_STATE.level*100; 
+            GAME_STATE.level++; 
+        } 
+        updateUI(); 
+    }
+    
+    function updateUI() {
+        document.getElementById('ui-level').innerText = GAME_STATE.level;
+        document.getElementById('ui-exp-text').innerText = `${GAME_STATE.exp} / ${GAME_STATE.level*100} EXP`;
+        document.getElementById('ui-exp-bar').style.width = `${(GAME_STATE.exp/(GAME_STATE.level*100))*100}%`;
+    }
+
+    function renderTabs() {
+        const container = document.getElementById('tab-container');
+        container.innerHTML = '';
+        TABS.forEach(t => {
+            const active = GAME_STATE.currentTab === t.id;
+            const btn = document.createElement('button');
+            btn.className = `flex-shrink-0 px-4 py-2 rounded-lg text-xs font-bold transition ${active ? 'bg-blue-600 text-white' : 'bg-slate-900 text-slate-500'}`;
+            btn.innerText = t.label;
+            btn.onclick = () => { GAME_STATE.currentTab = t.id; renderTabs(); renderGrid(); };
+            container.appendChild(btn);
         });
     }
 
-    function collect(id) {
-        if(!GAME_STATE.collected.has(id)) {
-            GAME_STATE.collected.add(id);
-            addExp(50);
-        }
-    }
-
-    function showToast(m) {
-        const t = document.getElementById('achievement-toast');
-        document.getElementById('toast-title').innerText = m;
-        t.classList.remove('translate-x-full');
-        setTimeout(() => t.classList.add('translate-x-full'), 3000);
-    }
-
-    function claimAch(id) { 
-        const ach = ACHIEVEMENTS.find(a => a.id === id);
-        if(ach && GAME_STATE.unlockedAchIds.has(id)) {
-            GAME_STATE.unlockedAchIds.delete(id);
-            GAME_STATE.achievementsClaimed.add(id);
-            playAchievementSound(); 
-            addExp(ach.exp); 
-            renderTabs(); renderGrid();
-        }
-    }
-
-    function changePage(d) { GAME_STATE.currentPage = Math.max(1, GAME_STATE.currentPage + d); renderGrid(); }
-    function openSettings() { document.getElementById('settings-modal').classList.remove('hidden'); }
-    function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
-    function updateVolume(v) { GAME_STATE.volume = v; if(mainGain) mainGain.gain.value = v; document.getElementById('vol-display').innerText = Math.round(v*100)+'%'; }
-    function toggleFullscreen() { if(!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
-    
-    function toggleMusic() {
-        initAudio();
-        if(GAME_STATE.isMusicPlaying) {
-            clearInterval(bgmInterval); GAME_STATE.isMusicPlaying = false;
-            document.getElementById('musicBtn').classList.remove('text-blue-400');
+    function renderGrid() {
+        const container = document.getElementById('grid-container');
+        container.innerHTML = '';
+        const tab = TABS.find(t => t.id === GAME_STATE.currentTab);
+        
+        let items = [];
+        if(tab.type === 'num') {
+            const start = (GAME_STATE.currentPage - 1) * tab.pageSize;
+            for(let i=start; i<start+tab.pageSize; i++) {
+                const s = String(i).padStart(tab.len, '0');
+                items.push({ id: `${tab.id.toUpperCase()}_${s}`, text: s });
+            }
         } else {
-            GAME_STATE.isMusicPlaying = true;
-            document.getElementById('musicBtn').classList.add('text-blue-400');
-            bgmInterval = setInterval(() => {
-                const notes = [261.63, 329.63, 392.00, 523.25];
-                playTone(notes[bgmStep % 4], 'sine', 0.8, 0.03);
-                bgmStep++;
-            }, 800);
+            Object.entries(tab.dict).forEach(([k, v]) => items.push({ id: `${tab.id.toUpperCase()}_${k}`, text: k, trans: v }));
         }
+
+        items.forEach(item => {
+            const collected = GAME_STATE.collected.has(item.id);
+            const div = document.createElement('div');
+            div.className = `plate-box rounded p-2 flex flex-col items-center justify-center aspect-[2.2/1] ${collected ? 'plate-collected' : 'plate-uncollected'}`;
+            div.innerHTML = `<div class="text-[8px] font-tech plate-text">${item.text}</div>${item.trans ? `<div class="text-[8px] mt-1 opacity-60">${item.trans}</div>`:''}`;
+            container.appendChild(div);
+        });
     }
 
-    function simulateScan() {
-        const words = ["CIA", "FBI", "BAD", "GOD", "SOS"];
-        const word = words[Math.floor(Math.random()*words.length)];
-        const num = String(Math.floor(Math.random()*9999)).padStart(4, '0');
-        collect(`ENG3_${word}`);
-        collect(`NUM4_${num}`);
-        playSuccessSound();
-        renderTabs(); renderGrid(); showToast("模擬掃描: 解鎖特殊代碼！");
-    }
-
-    window.onload = init;
+    window.onload = () => { renderTabs(); renderGrid(); updateUI(); };
 </script>
 </body>
 </html>
