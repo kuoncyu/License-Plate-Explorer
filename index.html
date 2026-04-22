@@ -23,6 +23,10 @@
         .exp-bar-fill { transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
         input[type="file"] { display: none; }
         .modal-overlay { backdrop-filter: blur(5px); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* 預覽影像處理效果 */
+        #scan-preview { filter: contrast(1.4) brightness(1.1) grayscale(0.5); transition: opacity 0.3s; }
     </style>
 </head>
 <body class="flex flex-col h-screen overflow-hidden">
@@ -30,9 +34,9 @@
     <!-- 頂部資訊列 -->
     <header class="bg-slate-800 border-b border-slate-700 p-3 shadow-lg z-20 flex-shrink-0">
         <div class="flex justify-between items-center mb-2">
-            <h1 class="text-xl font-black text-blue-400 tracking-wider">車牌探險家 <span class="text-[10px] bg-blue-900 px-1 rounded ml-1">v2.0</span></h1>
+            <h1 class="text-xl font-black text-blue-400 tracking-wider">車牌探險家 <span class="text-[10px] bg-blue-900 px-1 rounded ml-1">v2.5 Pro</span></h1>
             <div class="flex gap-2">
-                <button onclick="toggleMusic()" id="musicBtn" class="text-slate-400 p-1"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"></path></svg></button>
+                <button onclick="toggleMusic()" id="musicBtn" class="text-slate-400 p-1 transition-colors"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"></path></svg></button>
                 <button onclick="toggleFullscreen()" class="text-slate-400 p-1"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg></button>
                 <button onclick="openSettings()" class="text-slate-400 p-1"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg></button>
             </div>
@@ -51,19 +55,26 @@
         </div>
     </header>
 
-    <!-- 操作面板 -->
+    <!-- 操作面板 (分拆按鈕) -->
     <div class="bg-slate-800/80 p-2 border-b border-slate-700 flex-shrink-0 shadow-md">
-        <label class="w-full mb-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-2 px-4 rounded-lg cursor-pointer flex items-center justify-center gap-2 active:scale-95 transition text-sm">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
-            拍照 / 匯入辨識車牌
-            <input type="file" accept="image/*" onchange="handleImageUpload(event)">
-        </label>
+        <div class="flex gap-2 mb-2">
+            <label class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-2.5 px-2 rounded-lg cursor-pointer flex items-center justify-center gap-2 active:scale-95 transition text-xs shadow-lg shadow-blue-900/20">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                啟動相機拍照
+                <input type="file" accept="image/*" capture="environment" onchange="handleImageUpload(event)">
+            </label>
+            <label class="flex-1 bg-slate-700 text-white font-bold py-2.5 px-2 rounded-lg cursor-pointer flex items-center justify-center gap-2 active:scale-95 transition text-xs border border-slate-600">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                從相簿匯入
+                <input type="file" accept="image/*" onchange="handleImageUpload(event)">
+            </label>
+        </div>
         
         <div class="flex overflow-x-auto gap-2 pb-1 no-scrollbar" id="tab-container"></div>
         
         <div class="flex gap-2 mt-2 items-center">
             <div class="relative flex-1">
-                <input type="text" id="search-input" placeholder="搜尋車牌或含義..." class="w-full bg-slate-900 border border-slate-600 rounded-lg py-1.5 pl-8 pr-3 text-xs text-white focus:outline-none focus:border-blue-500">
+                <input type="text" id="search-input" placeholder="搜尋..." class="w-full bg-slate-900 border border-slate-600 rounded-lg py-1.5 pl-8 pr-3 text-xs text-white focus:outline-none focus:border-blue-500">
                 <svg class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </div>
             <div class="flex items-center gap-1 bg-slate-900 border border-slate-600 rounded-lg px-1 py-0.5">
@@ -77,12 +88,17 @@
 
     <!-- 主顯示區 -->
     <main class="flex-1 overflow-y-auto p-3 relative" id="main-content">
-        <div id="scanning-overlay" class="hidden absolute inset-0 bg-slate-900/90 z-40 flex flex-col items-center justify-center">
-            <div class="relative w-48 h-48 border-2 border-blue-500 rounded-lg overflow-hidden mb-4">
-                <img id="scan-preview" class="w-full h-full object-cover opacity-40">
+        <!-- 掃描中遮罩 -->
+        <div id="scanning-overlay" class="hidden absolute inset-0 bg-slate-900/95 z-40 flex flex-col items-center justify-center p-6">
+            <div class="relative w-full max-w-[280px] aspect-[4/3] border-2 border-blue-500 rounded-lg overflow-hidden mb-6 bg-black shadow-[0_0_20px_rgba(59,130,246,0.3)]">
+                <img id="scan-preview" class="w-full h-full object-contain opacity-60">
                 <div class="scanner-line"></div>
+                <div class="absolute bottom-2 left-2 text-[10px] text-blue-400 font-tech">AI_OCR_ENGINE_v5.0</div>
             </div>
-            <p class="text-blue-400 text-xs font-tech animate-pulse" id="scan-status">ANALYZING...</p>
+            <div class="w-full max-w-[280px] bg-slate-800 h-1.5 rounded-full overflow-hidden mb-2">
+                <div id="scan-progress" class="bg-blue-500 h-full w-0 transition-all duration-300"></div>
+            </div>
+            <p class="text-blue-400 text-xs font-tech tracking-widest animate-pulse" id="scan-status">ANALYZING SIGNAL...</p>
         </div>
         <div id="grid-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 pb-20"></div>
     </main>
@@ -98,9 +114,10 @@
                     <input type="range" min="0" max="1" step="0.1" value="0.5" class="w-full" onchange="updateVolume(this.value)">
                 </div>
                 <div class="bg-slate-900 p-3 rounded border border-slate-700 text-slate-300 leading-relaxed">
-                    <p>設計者: 郭柏宏</p>
-                    <p>開發工具: Gemini</p>
-                    <p>版本: 20260422</p>
+                    <p>開發者: 郭柏宏</p>
+                    <p>引擎: Tesseract.js x Gemini</p>
+                    <p>版本: 2026.04.22_V5_PRO</p>
+                    <p class="mt-2 text-blue-500 text-[10px]">提示: 拍攝時請對準車牌，光線充足辨識度更高。</p>
                 </div>
                 <button onclick="simulateScan()" class="w-full py-2 bg-slate-700 text-slate-400 rounded">測試: 隨機模擬解鎖</button>
             </div>
@@ -111,23 +128,52 @@
     <div id="achievement-toast" class="fixed top-16 right-0 transform translate-x-full transition-transform duration-500 z-50 bg-amber-600 text-white px-4 py-2 rounded-l-lg shadow-xl flex items-center gap-2 border-l-4 border-amber-300">
         <div class="text-xl">🏆</div>
         <div>
-            <div class="text-[10px] opacity-80 font-bold uppercase">Achievement!</div>
-            <div id="toast-title" class="text-xs font-bold">解鎖成就</div>
+            <div class="text-[10px] opacity-80 font-bold uppercase">System Update!</div>
+            <div id="toast-title" class="text-xs font-bold">解鎖成功</div>
         </div>
     </div>
 
-<script>
-    // --- 擴充詞彙庫 (300+ 每個) ---
-    const ENG3_DICT = {
-        "ANT": "螞蟻", "ATM": "提款機", "FBI": "聯邦局", "TEA": "茶葉", "BUS": "公車", "CAR": "汽車", "CAT": "貓咪", "DOG": "狗狗", "SUN": "太陽", "VIP": "貴賓", "WOW": "驚嘆", "YES": "是的", "ZOO": "動物園", "AIR": "空氣", "BOY": "男孩", "CUP": "杯子", "DAY": "白天", "EYE": "眼睛", "FOX": "狐狸", "GOD": "神明", "HAT": "帽子", "ICE": "冰塊", "JOB": "工作", "KEY": "鑰匙", "LOG": "日誌", "MAP": "地圖", "NET": "網路", "OUT": "外面", "PEN": "鋼筆", "RED": "紅色", "SKY": "天空", "TOP": "頂端", "USE": "使用", "FLY": "飛行", "FUN": "樂趣", "GYM": "健身", "HOT": "熱的", "JOY": "喜悅", "KID": "小孩", "MAD": "瘋狂", "NEW": "新的", "OLD": "老的", "PET": "寵物", "RUN": "跑步", "SAD": "悲傷", "TAX": "稅務", "OIL": "石油", "WIN": "贏得", "WAR": "戰爭", "BAT": "蝙蝠", "BOX": "盒子", "BAG": "袋子", "BED": "床鋪", "BEE": "蜜蜂", "BIG": "大的", "BIT": "一點", "BOW": "弓箭", "CAN": "罐頭", "CAP": "鴨舌帽", "COW": "乳牛", "CRY": "哭泣", "CUT": "切割", "DAD": "爸爸", "DIG": "挖掘", "DRY": "乾燥", "EAR": "耳朵", "EAT": "吃喝", "EGG": "雞蛋", "END": "結束", "FAN": "風扇", "FAR": "遠的", "FAT": "胖的", "FEE": "費用", "FIT": "適合", "FIX": "修補", "FOR": "為了", "GAS": "瓦斯", "GAY": "快樂", "GET": "獲得", "GUN": "槍枝", "GUY": "傢伙", "HAM": "火腿", "HEN": "母雞", "HEY": "嘿", "HIP": "臀部", "HIT": "打擊", "HOP": "跳躍", "HOW": "如何", "HUG": "擁抱", "INK": "墨水", "ITS": "它的", "JAM": "果醬", "JAR": "罐子", "JET": "噴射", "KAY": "凱", "LAB": "實驗室", "LAP": "大腿", "LAW": "法律", "LAY": "躺下", "LEG": "腿部", "LET": "讓", "LID": "蓋子", "LIE": "謊言", "LIP": "嘴唇", "LIT": "點亮", "LOW": "低的", "MAN": "男人", "MAT": "墊子", "MAY": "可能", "MIX": "混合", "MOM": "媽媽", "MUD": "泥土", "NAP": "午睡", "NOD": "點頭", "NOT": "不", "NOW": "現在", "NUT": "堅果", "OFF": "關閉", "ONE": "一", "OWN": "擁有", "PAD": "護墊", "PAN": "平底鍋", "PAY": "支付", "PEA": "豌豆", "PEG": "栓子", "PIE": "派餅", "PIG": "豬", "PIN": "大頭針", "POT": "壺", "PUB": "酒吧", "RAT": "老鼠", "RAW": "生的", "RAY": "光線", "ROB": "搶劫", "ROD": "桿子", "ROW": "排", "RUB": "摩擦", "SAW": "看過", "SEA": "大海", "SEE": "看見", "SET": "設定", "SHE": "她", "SHY": "害羞", "SIN": "罪惡", "SIP": "啜飲", "SIR": "先生", "SIT": "坐下", "SIX": "六", "SON": "兒子", "SOY": "大豆", "SUN": "太陽", "TAB": "標籤", "TAG": "標記", "TAP": "輕敲", "TEN": "十", "THE": "那個", "TIE": "領帶", "TIP": "尖端", "TOE": "腳趾", "TON": "噸", "TOO": "太", "TOY": "玩具", "TRY": "嘗試", "TUB": "浴缸", "TWO": "二", "UFO": "不明飛行物", "UPP": "上部", "URL": "連結", "USA": "美國", "VAN": "廂型車", "VET": "獸醫", "VIA": "經由", "WET": "濕的", "WHO": "誰", "WHY": "為什麼", "WIG": "假髮", "YES": "是", "YET": "尚未", "YOU": "你", "ZIP": "拉鍊", "ACE": "王牌", "ADD": "增加", "AGE": "年紀", "AGO": "以前", "AID": "援助", "AIM": "目標", "ALL": "全部", "ANY": "任何", "ARC": "圓弧", "ARM": "手臂", "ART": "藝術", "ASH": "灰燼", "ASK": "詢問", "AWE": "敬畏", "AXE": "斧頭", "BAD": "壞的", "BAR": "條狀", "BIO": "傳記", "CEO": "執行長", "CFO": "財務長", "CTO": "技術長", "COO": "營運長", "DVD": "光碟", "GPS": "衛星定位", "HIV": "病毒", "IBM": "IBM公司", "iOS": "iOS系統", "KFC": "肯德基", "LCD": "液晶螢幕", "LED": "發光二極體", "MTV": "電視台", "NBA": "籃球聯賽", "SOS": "求救信號", "USB": "傳輸埠", "WWW": "全球資訊網", "ZAP": "電擊", "ZIG": "彎曲", "ZZZ": "睡覺中", "FOX": "狐狸", "LUV": "愛(俗語)", "MAX": "最大", "MIN": "最小", "PRO": "專業", "DUO": "雙人", "TRI": "三人", "VIB": "氛圍", "ICY": "冰冷的", "IVY": "常春藤", "EGO": "自我", "ERA": "時代", "ERR": "錯誤", "EVE": "前夕", "ILL": "生病的", "INN": "旅館", "ION": "離子", "OAK": "橡木", "OAR": "槳", "OAT": "燕麥", "ODD": "奇怪的", "ODE": "頌歌", "OPT": "選擇", "ORB": "球體", "ORE": "礦石", "OUR": "我們的", "OWE": "欠債", "OWL": "貓頭鷹", "PEW": "長椅", "PLY": "層", "PRY": "窺探", "PUG": "巴哥犬", "PUN": "雙關語", "PYX": "聖盒", "QUA": "作為", "RAI": "雷", "RAM": "公羊", "RAP": "饒舌", "REB": "叛徒", "REF": "裁判", "REP": "代表", "REV": "轉速", "RIB": "肋骨", "RID": "擺脫", "RIG": "裝備", "RIM": "邊緣", "RIP": "安息", "RUE": "後悔", "RUG": "地毯", "RUM": "萊姆酒", "RYE": "黑麥", "SAG": "下垂", "SAP": "液汁", "SAT": "坐過", "SEC": "秒", "SEW": "縫紉", "SHU": "恕", "SKI": "滑雪", "SLY": "狡猾", "SOB": "啜泣", "SOW": "播種", "SPA": "水療", "SPY": "間諜", "STY": "豬圈", "SUE": "起訴", "SUM": "總和", "SUN": "陽光", "SUP": "晚餐", "TAN": "曬黑", "TAR": "柏油", "TEA": "茶", "TED": "泰德", "TEE": "發球台", "TET": "春節", "TIC": "抽搐", "TIL": "直到", "TIN": "錫", "TIT": "山雀", "TOG": "衣服", "TOM": "湯姆", "TOW": "拖車", "TUT": "嘖嘖", "TUX": "禮服", "UKE": "烏克麗麗", "UMP": "裁判", "UNI": "大學", "URN": "甕", "UTO": "烏托邦", "VAMP": "誘惑", "VAT": "大桶", "VEE": "V形", "VEX": "煩惱", "VIE": "競爭", "VIM": "活力", "VOW": "誓言", "VOX": "聲音", "WAD": "墊子", "WAG": "擺動", "WAN": "蒼白", "WAX": "蠟", "WAY": "道路", "WEB": "網", "WED": "結婚", "WEE": "極小", "WEN": "粉瘤", "WHO": "誰", "WOK": "炒鍋", "WON": "贏過", "WOO": "求愛", "WOP": "義大利人", "WRY": "扭曲", "YAK": "犛牛", "YAM": "山藥", "YAP": "吠叫", "YAW": "偏航", "YEA": "耶", "YEN": "渴望", "YIP": "尖叫", "YOD": "約特", "YOK": "橫桿", "YOM": "日子", "YON": "那邊", "YOU": "你", "YOW": "哎呀", "YUK": "嘔吐", "YUM": "美味", "ZED": "Z", "ZEE": "Z", "ZEN": "禪", "ZIN": "辛粉", "ZIP": "拉鍊", "ZIT": "青春痘", "ZOA": "動物"
-    };
+    <!-- 用於預處理圖像的隱藏 Canvas -->
+    <canvas id="preprocess-canvas" class="hidden"></canvas>
 
-    const ENG2_DICT = {
-        "FB": "臉書", "AM": "上午", "FM": "調頻", "PM": "下午", "GU": "服飾品牌", "HI": "你好", "OK": "好", "GO": "去", "NO": "不", "UP": "上", "ON": "在...上", "IN": "在...裡", "DO": "做", "BE": "是", "ME": "我", "WE": "我們", "HE": "他", "AS": "作為", "AT": "在", "BY": "藉由", "IT": "它", "IS": "是", "OF": "的", "OR": "或者", "SO": "所以", "TO": "到", "US": "我們", "MY": "我的", "TV": "電視", "PC": "電腦", "CD": "光碟", "DJ": "DJ", "IQ": "智商", "EQ": "情商", "PR": "公關", "AD": "廣告", "AI": "人工智慧", "AN": "一個", "ID": "身分", "IF": "如果", "OH": "喔", "OX": "公牛", "PA": "爸爸", "PI": "圓周率", "RE": "關於", "TI": "鈦", "UN": "聯合國", "UK": "英國", "US": "美國", "EU": "歐盟", "CO": "公司", "DR": "醫生", "MR": "先生", "MS": "女士", "VS": "對決", "EX": "前任", "YO": "喲", "AH": "啊", "HA": "哈", "HO": "吼", "LA": "啦", "MA": "媽", "OW": "哎喲", "UH": "嗯", "BI": "雙性", "JO": "喬", "KO": "擊倒", "LI": "鋰", "MU": "希臘字母", "NU": "新", "OM": "梵音", "SI": "是(西語)", "TA": "謝謝(英口語)", "XI": "希臘字母", "YE": "你們", "AR": "擴增實境", "VR": "虛擬實境", "AC": "交流電", "DC": "直流電", "HR": "人資", "RD": "研發", "QA": "品管", "PM": "產品經理", "BD": "開發", "CS": "客服", "IT": "資訊科技", "UI": "介面", "UX": "體驗", "BB": "寶貝", "CC": "副本", "DD": "日期", "EE": "工程", "FF": "快進", "GG": "完蛋了", "HH": "哈哈", "II": "羅馬數字二", "JJ": "JJ", "KK": "音標", "LL": "法學碩士", "MM": "毫米", "NN": "中午", "OO": "零零", "PP": "頁碼", "QQ": "哭哭", "RR": "鐵路", "SS": "不鏽鋼", "TT": "TT", "UU": "你", "VV": "VV", "WW": "世界", "XX": "XX", "YY": "歪歪", "ZZ": "睡覺", "XP": "經驗值", "OS": "系統", "AP": "熱點", "IP": "協議", "DB": "分貝", "KB": "千位元組", "MB": "百萬位元組", "GB": "十億位元組", "TB": "兆位元組", "PH": "酸鹼度", "SH": "噓", "ST": "聖", "AU": "金", "AG": "銀", "CU": "銅", "FE": "鐵", "AL": "鋁", "CA": "鈣", "MG": "鎂", "NA": "鈉", "CL": "氯", "HE": "氦", "NE": "氖", "BA": "鋇", "NI": "鎳", "ZN": "鋅", "HG": "汞", "PB": "鉛", "PU": "鈽", "RA": "鐳", "RN": "氡", "PT": "鉑", "SN": "錫", "SB": "銻", "UR": "你", "WT": "重量", "HT": "高度", "FT": "英尺", "IN": "英吋", "OZ": "盎司", "LB": "磅", "KG": "公斤", "GM": "克", "ML": "毫升", "DL": "分升", "KM": "公里", "MM": "公釐", "CM": "公分", "YD": "碼", "BT": "藍牙", "HF": "高頻", "LF": "低頻", "RF": "射頻", "UV": "紫外線", "IR": "紅外線", "HD": "高清", "SD": "標清", "4K": "4K解析度", "HQ": "總部", "NC": "北", "SC": "南", "EC": "東", "WC": "西", "NY": "紐約", "LA": "洛杉磯", "SF": "舊金山", "TX": "德州", "FL": "佛州", "WA": "華盛頓", "OH": "俄亥俄", "GA": "喬治亞", "PA": "賓州", "IL": "伊利諾", "MI": "密西根", "NJ": "紐澤西", "MA": "麻州", "NC": "北卡", "VA": "維吉尼亞", "AZ": "亞利桑那", "TN": "田納西", "MO": "密蘇里", "MD": "馬里蘭", "WI": "威斯康辛", "MN": "明尼蘇達", "CO": "科羅拉多", "AL": "阿拉巴馬", "SC": "南卡", "LA": "路易斯安那", "KY": "肯塔基", "OR": "奧勒岡", "OK": "奧克拉荷馬", "CT": "康乃狄克", "IA": "愛荷華", "MS": "密西西比", "AR": "阿肯色", "KS": "堪薩斯", "UT": "猶他", "NV": "內華達", "NM": "新墨西哥", "WV": "西維吉尼亞", "NE": "內布拉斯加", "ID": "愛達荷", "HI": "夏威夷", "ME": "緬因", "NH": "新罕布夏", "RI": "羅德島", "MT": "蒙大拿", "DE": "德拉瓦", "SD": "南達科他", "ND": "北達科他", "AK": "阿拉斯加", "VT": "佛蒙特", "WY": "懷俄明", "PR": "波多黎各", "GU": "關島", "VI": "維京群島", "DC": "特區", "CA": "加州", "AB": "亞伯達", "BC": "英屬哥倫比亞", "ON": "安大略", "QC": "魁北克", "NS": "新斯科細亞", "NB": "新不倫瑞克", "MB": "曼尼托巴", "SK": "薩斯喀徹溫", "PE": "愛德華王子島", "NL": "紐芬蘭", "NT": "西北地區", "YT": "育空", "NU": "努納武特", "AM": "AM廣播", "PM": "PM值", "AF": "空軍", "GA": "通用汽車", "VW": "福斯", "BM": "寶馬", "MB": "賓士", "MD": "麥當勞", "BK": "漢堡王", "SB": "星巴克", "FB": "臉書", "IG": "IG", "TW": "推特", "YT": "YT", "LI": "領英", "TK": "抖音", "WA": "WhatsApp", "TG": "Telegram", "SN": "Snapchat", "RD": "Reddit", "QU": "Quora", "PI": "Pinterest", "TU": "Tumblr", "FL": "Flickr", "VI": "Vimeo", "ME": "Medium", "DE": "DeviantArt", "BE": "Behance", "DR": "Dribbble", "SL": "Slack", "ZO": "Zoom", "SK": "Skype", "DI": "Discord", "TE": "Teams", "MT": "Meet", "WE": "Webex", "GO": "Google", "MS": "Microsoft", "AP": "Apple", "AM": "Amazon", "ME": "Meta", "TS": "Tesla", "NV": "Nvidia", "IN": "Intel", "AD": "Adobe", "OR": "Oracle", "SA": "SAP", "SA": "Salesforce", "CS": "Cisco", "HP": "HP", "DE": "Dell", "IB": "IBM", "SO": "Sony", "SA": "Samsung", "LG": "LG", "PA": "Panasonic", "TO": "Toyota", "HO": "Honda", "NI": "Nissan", "HY": "Hyundai", "KI": "Kia", "FO": "Ford", "CH": "Chevrolet", "JE": "Jeep", "TE": "Tesla", "FE": "Ferrari", "LA": "Lamborghini", "PO": "Porsche", "AU": "Audi", "BM": "BMW", "ME": "Mercedes", "VO": "Volvo", "FI": "Fiat", "RE": "Renault", "PE": "Peugeot", "CI": "Citroen", "JA": "Jaguar", "LR": "Land Rover", "RR": "Rolls-Royce", "BE": "Bentley", "AM": "Aston Martin", "MA": "Maserati", "AL": "Alfa Romeo", "SU": "Suzuki", "MA": "Mazda", "SU": "Subaru", "MI": "Mitsubishi", "IS": "Isuzu", "DA": "Daihatsu", "HI": "Hino"
+<script>
+    // --- 擴充詞彙庫 (增加有趣代碼) ---
+    const ENG3_DICT = { 
+        "CIA": "情報局", "FBI": "聯邦調查局", "CAI": "青菜(諧音)", "BAD": "壞人", "GOD": "神明", 
+        "ANT": "螞蟻", "ATM": "提款機", "TEA": "茶葉", "BUS": "公車", "CAR": "汽車", 
+        "CAT": "貓咪", "DOG": "狗狗", "SUN": "太陽", "VIP": "貴賓", "WOW": "驚嘆", 
+        "YES": "是的", "ZOO": "動物園", "AIR": "空氣", "BOY": "男孩", "CUP": "杯子", 
+        "DAY": "白天", "EYE": "眼睛", "FOX": "狐狸", "HAT": "帽子", "ICE": "冰塊", 
+        "JOB": "工作", "KEY": "鑰匙", "LOG": "日誌", "MAP": "地圖", "NET": "網路", 
+        "OUT": "外面", "PEN": "鋼筆", "RED": "紅色", "SKY": "天空", "TOP": "頂端", 
+        "FLY": "飛行", "FUN": "樂趣", "GYM": "健身", "HOT": "熱的", "JOY": "喜悅", 
+        "KID": "小孩", "MAD": "瘋狂", "NEW": "新的", "OLD": "老的", "PET": "寵物", 
+        "RUN": "跑步", "SAD": "悲傷", "TAX": "稅務", "WIN": "贏得", "WAR": "戰爭", 
+        "CEO": "執行長", "CFO": "財務長", "SOS": "求救信號", "WWW": "網際網路" 
+    };
+    const ENG2_DICT = { 
+        "AI": "人工智慧", "FB": "臉書", "AM": "上午", "FM": "調頻", "PM": "下午", 
+        "GU": "服飾品牌", "HI": "你好", "OK": "好", "GO": "去", "NO": "不", 
+        "UP": "上", "ON": "在...上", "ID": "身分", "IF": "如果", "OH": "喔", 
+        "YO": "喲", "AC": "交流電", "DC": "直流電", "UI": "介面", "UX": "體驗", 
+        "GG": "完蛋", "ZZ": "睡覺", "OS": "系統", "IP": "網路位址" 
     };
 
     const TITLES = ["見習探險家", "街頭觀察員", "車牌獵人", "數據收集者", "尋寶達人", "菁英探險家", "傳奇大師", "道路先知", "視覺神經元", "車牌之神"];
-    const GAME_STATE = { collected: new Set(), exp: 0, level: 1, loginDays: 1, achievementsClaimed: new Set(), currentTab: 'num4', currentPage: 1, searchQuery: '', volume: 0.5, isMusicPlaying: false };
+    const GAME_STATE = { 
+        collected: new Set(), 
+        exp: 0, 
+        level: 1, 
+        loginDays: 1, 
+        achievementsClaimed: new Set(), 
+        unlockedAchIds: new Set(), 
+        currentTab: 'num4', 
+        currentPage: 1, 
+        searchQuery: '', 
+        volume: 0.5, 
+        isMusicPlaying: false 
+    };
+
     const TABS = [
         { id: 'num4', label: '4位數字', type: 'num', len: 4, count: 10000, pageSize: 60 },
         { id: 'num3', label: '3位數字', type: 'num', len: 3, count: 1000, pageSize: 60 },
@@ -135,9 +181,10 @@
         { id: 'eng2', label: '2位英文', type: 'eng', dict: ENG2_DICT, pageSize: 60 },
         { id: 'achievements', label: '探索成就', type: 'special' }
     ];
+
     const ACHIEVEMENTS = [];
 
-    // --- 音效核心 ---
+    // --- 音效與初始化 ---
     let audioCtx, mainGain, bgmInterval;
     let bgmStep = 0;
 
@@ -168,28 +215,56 @@
         playTone(440, 'sine', 0.3, 0.3, 0);
         playTone(554, 'sine', 0.3, 0.3, 0.1);
         playTone(659, 'sine', 0.4, 0.3, 0.2);
-        playTone(880, 'sine', 0.6, 0.3, 0.3);
     }
 
     function playAchievementSound() {
-        playTone(523.25, 'square', 0.2, 0.2, 0);
-        playTone(659.25, 'square', 0.2, 0.2, 0.15);
-        playTone(783.99, 'square', 0.2, 0.2, 0.3);
-        playTone(1046.50, 'square', 0.6, 0.2, 0.45);
+        playTone(523.25, 'square', 0.15, 0.2, 0);
+        playTone(659.25, 'square', 0.15, 0.2, 0.1);
+        playTone(783.99, 'square', 0.15, 0.2, 0.2);
+        playTone(1046.50, 'square', 0.5, 0.2, 0.3);
     }
 
-    // --- 核心邏輯 ---
+    // --- 核心功能 ---
     function init() {
-        genAch(); renderTabs(); updateUI(); renderGrid();
+        genAch(); 
+        checkAchievements();
+        renderTabs(); 
+        updateUI(); 
+        renderGrid();
         document.getElementById('page-input').onchange = (e) => { GAME_STATE.currentPage = parseInt(e.target.value) || 1; renderGrid(); };
         document.getElementById('search-input').oninput = (e) => { GAME_STATE.searchQuery = e.target.value.toUpperCase(); GAME_STATE.currentPage = 1; renderGrid(); };
     }
 
     function genAch() {
-        for(let i=1; i<=100; i++) {
-            let type = i <= 50 ? 'special' : (i <= 80 ? 'count' : (i <= 90 ? 'level' : 'login'));
-            ACHIEVEMENTS.push({ id: i, type: type, title: `成就 #${i}`, exp: 50 + i, claimed: false });
-        }
+        const specialCodes = ["8888", "1688", "5555", "9999", "6666", "1111", "1234", "CIA", "FBI", "CAI", "BAD", "GOD", "CEO", "SOS", "WWW", "VIP", "WOW", "YES", "USA", "DOG", "CAT", "WIN", "WAR", "ACE", "PRO", "UFO", "TEA", "ONE", "SIX", "TEN"];
+        specialCodes.forEach((code, i) => {
+            ACHIEVEMENTS.push({ 
+                id: i + 1, 
+                type: 'special', 
+                target: code, 
+                title: `發現寶藏: ${code}`, 
+                desc: `成功辨識出 "${code}" 相關車牌`,
+                exp: 100 
+            });
+        });
+        [10, 50, 100, 500].forEach((c, i) => {
+            ACHIEVEMENTS.push({ id: 100+i, type: 'count', target: c, title: `收藏達人: ${c}`, desc: `累計解鎖 ${c} 種組合`, exp: c * 5 });
+        });
+    }
+
+    function checkAchievements() {
+        let anyNew = false;
+        ACHIEVEMENTS.forEach(ach => {
+            if (GAME_STATE.achievementsClaimed.has(ach.id) || GAME_STATE.unlockedAchIds.has(ach.id)) return;
+            let conditionMet = false;
+            if (ach.type === 'special') {
+                for (let collectedId of GAME_STATE.collected) { if (collectedId.includes(ach.target)) { conditionMet = true; break; } }
+            } else if (ach.type === 'count') {
+                if (GAME_STATE.collected.size >= ach.target) conditionMet = true;
+            }
+            if (conditionMet) { GAME_STATE.unlockedAchIds.add(ach.id); anyNew = true; }
+        });
+        if (anyNew) { renderTabs(); if(GAME_STATE.currentTab === 'achievements') renderGrid(); }
     }
 
     function addExp(v) {
@@ -200,6 +275,7 @@
             playAchievementSound();
             showToast(`等級提升！目前 Lv.${GAME_STATE.level}`);
         }
+        checkAchievements();
         updateUI();
     }
 
@@ -223,7 +299,12 @@
             const total = t.count || Object.keys(t.dict || {}).length;
             const btn = document.createElement('button');
             btn.className = `flex-shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold transition whitespace-nowrap border-2 ${active ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'bg-slate-900 border-transparent text-slate-500'}`;
-            btn.innerHTML = `${t.label} <span class="opacity-50 ml-1">${t.type !== 'special' ? Math.floor((collected/total)*100)+'%' : ''}</span>`;
+            
+            let extra = (t.type === 'special') ? 
+                (GAME_STATE.unlockedAchIds.size > 0 ? `<span class="ml-1 px-1.5 bg-red-500 text-white rounded-full text-[9px] animate-pulse">${GAME_STATE.unlockedAchIds.size}</span>` : '') : 
+                `<span class="opacity-50 ml-1">${Math.floor((collected/total)*100)}%</span>`;
+            
+            btn.innerHTML = `${t.label} ${extra}`;
             btn.onclick = () => { GAME_STATE.currentTab = t.id; GAME_STATE.currentPage = 1; renderTabs(); renderGrid(); };
             container.appendChild(btn);
         });
@@ -236,12 +317,15 @@
         
         if(tab.type === 'special') {
             ACHIEVEMENTS.forEach(a => {
+                const isClaimed = GAME_STATE.achievementsClaimed.has(a.id);
+                const isUnlocked = GAME_STATE.unlockedAchIds.has(a.id);
                 const div = document.createElement('div');
-                div.className = "col-span-2 bg-slate-800 p-2 rounded border border-slate-700 text-[10px] flex justify-between items-center";
-                const btnHtml = a.claimed 
-                    ? `<button class="bg-slate-600 px-2 py-1 rounded text-slate-400 cursor-not-allowed" disabled>已領取</button>`
-                    : `<button onclick="claimAch(${a.id})" class="bg-blue-600 px-2 py-1 rounded text-white active:bg-blue-700">領取</button>`;
-                div.innerHTML = `<div><div class="font-bold">探索成就 ${a.id}</div><div class="text-slate-500">完成特定挑戰領取</div></div>${btnHtml}`;
+                div.className = `col-span-2 p-2 rounded border text-[10px] flex justify-between items-center ${isUnlocked ? 'bg-blue-900/30 border-blue-500' : 'bg-slate-800 border-slate-700'}`;
+                div.innerHTML = `<div class="flex-1 pr-2">
+                    <div class="font-bold ${isUnlocked ? 'text-blue-300' : 'text-slate-300'}">${a.title}</div>
+                    <div class="text-[9px] text-slate-500">${a.desc}</div>
+                </div>
+                ${isClaimed ? '<span class="text-slate-500">已領</span>' : (isUnlocked ? `<button onclick="claimAch(${a.id})" class="bg-amber-500 px-2 py-1 rounded text-black font-bold">領取</button>` : '<span class="text-slate-700">鎖定</span>')}`;
                 container.appendChild(div);
             });
             return;
@@ -266,65 +350,111 @@
         items.forEach(item => {
             const collected = GAME_STATE.collected.has(item.id);
             const div = document.createElement('div');
-            div.className = `plate-box rounded p-2 flex flex-col items-center justify-center aspect-[2/1] ${collected ? 'plate-collected' : 'plate-uncollected'}`;
-            div.innerHTML = `<div class="text-[8px] opacity-30 uppercase">Taiwan</div><div class="text-lg font-black font-tech plate-text">${item.text}</div>${item.trans ? `<div class="text-[9px] mt-1 bg-black/40 px-1 rounded">${item.trans}</div>`:''}`;
+            div.className = `plate-box rounded p-2 flex flex-col items-center justify-center aspect-[2.2/1] ${collected ? 'plate-collected' : 'plate-uncollected'}`;
+            div.innerHTML = `<div class="text-[7px] opacity-30 uppercase tracking-tighter">TAIWAN ROC</div><div class="text-lg font-black font-tech plate-text leading-none">${item.text}</div>${item.trans ? `<div class="text-[8px] mt-1 bg-black/40 px-1 rounded truncate max-w-full">${item.trans}</div>`:''}`;
             container.appendChild(div);
         });
 
-        document.getElementById('total-pages').innerText = `/ ${Math.ceil((tab.count || Object.keys(tab.dict).length)/tab.pageSize)}`;
+        const totalItems = tab.count || Object.keys(tab.dict).length;
+        document.getElementById('total-pages').innerText = `/ ${Math.ceil(totalItems/tab.pageSize)}`;
         document.getElementById('page-input').value = GAME_STATE.currentPage;
     }
 
+    // --- OCR 核心優化 ---
     async function handleImageUpload(e) {
         const file = e.target.files[0]; if(!file) return;
         const overlay = document.getElementById('scanning-overlay');
         const statusText = document.getElementById('scan-status');
-        document.getElementById('scan-preview').src = URL.createObjectURL(file);
+        const progressBar = document.getElementById('scan-progress');
+        const preview = document.getElementById('scan-preview');
+        
+        preview.src = URL.createObjectURL(file);
         overlay.classList.remove('hidden');
-        statusText.innerText = "初始化掃描引擎...";
+        statusText.innerText = "訊號初始化...";
+        progressBar.style.width = "10%";
+
+        // 影像預處理：提升對比度與灰階
+        const processedBlob = await preprocessImage(file);
         
         try {
-            const res = await Tesseract.recognize(file, 'eng', {
-                logger: m => {
-                    if (m.status === 'recognizing text') {
-                        statusText.innerText = `辨識中... ${Math.round(m.progress * 100)}%`;
-                    }
+            statusText.innerText = "載入分析矩陣...";
+            progressBar.style.width = "30%";
+            
+            const worker = await Tesseract.createWorker('eng');
+            
+            statusText.innerText = "深度語法解析中...";
+            const res = await worker.recognize(processedBlob);
+            
+            // 強力過濾與修復
+            // 修正 OCR 常見錯誤：如 '0' 被辨識為 'O'，'1' 被辨識為 'I' 等
+            let text = res.data.text.toUpperCase();
+            
+            // 智慧清洗雜訊
+            const cleaned = text.replace(/[^A-Z0-9]/g, ' ');
+            const parts = cleaned.split(/\s+/);
+            
+            let count = 0;
+            parts.forEach(p => {
+                // 處理數字 (4碼或3碼)
+                if(/^[0-9OQI]{3,4}$/.test(p)) {
+                    let num = p.replace(/O|Q/g, '0').replace(/I/g, '1');
+                    if(num.length === 4) { collect(`NUM4_${num}`); count++; }
+                    else if(num.length === 3) { collect(`NUM3_${num}`); count++; }
+                }
+                // 處理英文 (3碼或2碼)
+                if(/^[A-Z01]{2,3}$/.test(p)) {
+                    let eng = p.replace(/0/g, 'O').replace(/1/g, 'I');
+                    if(eng.length === 3 && ENG3_DICT[eng]) { collect(`ENG3_${eng}`); count++; }
+                    else if(eng.length === 2 && ENG2_DICT[eng]) { collect(`ENG2_${eng}`); count++; }
                 }
             });
-            const text = res.data.text.toUpperCase().replace(/[^A-Z0-9]/g, '');
-            let count = 0;
-            
-            const letters = text.match(/[A-Z]{2,3}/g) || [];
-            const numbers = text.match(/[0-9]{3,4}/g) || [];
 
-            letters.forEach(m => {
-                let id = '';
-                if(m.length === 3 && ENG3_DICT[m]) id = `ENG3_${m}`;
-                else if(m.length === 2 && ENG2_DICT[m]) id = `ENG2_${m}`;
-                if(id && !GAME_STATE.collected.has(id)) { GAME_STATE.collected.add(id); count++; addExp(20); }
-            });
+            progressBar.style.width = "100%";
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                if(count > 0) {
+                    playSuccessSound();
+                    showToast(`掃描成功！解鎖 ${count} 個代碼`);
+                    renderTabs(); renderGrid();
+                } else {
+                    showToast("未偵測到有效車牌組合");
+                }
+            }, 500);
 
-            numbers.forEach(m => {
-                let id = '';
-                if(m.length === 4) id = `NUM4_${m}`;
-                else if(m.length === 3) id = `NUM3_${m}`;
-                if(id && !GAME_STATE.collected.has(id)) { GAME_STATE.collected.add(id); count++; addExp(20); }
-            });
-
-            if(count > 0) { 
-                playSuccessSound(); 
-                showToast(`成功收集 ${count} 個車牌！`); 
-                renderTabs(); 
-                renderGrid(); 
-            } else { 
-                alert("未辨識到新的有效車牌。\n辨識參考: " + (text || "無")); 
-            }
-        } catch(e) { 
-            console.error(e);
-            alert("辨識發生錯誤，請重新嘗試。"); 
+            await worker.terminate();
+        } catch(err) {
+            console.error(err);
+            showToast("掃描系統異常");
+            overlay.classList.add('hidden');
         }
-        overlay.classList.add('hidden');
-        e.target.value = ''; // Reset input
+        e.target.value = '';
+    }
+
+    // 圖像預處理函式：利用隱藏 Canvas 處理圖像，提高辨識度
+    function preprocessImage(file) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.getElementById('preprocess-canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                
+                // 繪製並應用灰階與高對比
+                ctx.filter = 'grayscale(1) contrast(1.5) brightness(1.2)';
+                ctx.drawImage(img, 0, 0);
+                
+                canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.9);
+            };
+            img.src = URL.createObjectURL(file);
+        });
+    }
+
+    function collect(id) {
+        if(!GAME_STATE.collected.has(id)) {
+            GAME_STATE.collected.add(id);
+            addExp(50);
+        }
     }
 
     function showToast(m) {
@@ -332,6 +462,17 @@
         document.getElementById('toast-title').innerText = m;
         t.classList.remove('translate-x-full');
         setTimeout(() => t.classList.add('translate-x-full'), 3000);
+    }
+
+    function claimAch(id) { 
+        const ach = ACHIEVEMENTS.find(a => a.id === id);
+        if(ach && GAME_STATE.unlockedAchIds.has(id)) {
+            GAME_STATE.unlockedAchIds.delete(id);
+            GAME_STATE.achievementsClaimed.add(id);
+            playAchievementSound(); 
+            addExp(ach.exp); 
+            renderTabs(); renderGrid();
+        }
     }
 
     function changePage(d) { GAME_STATE.currentPage = Math.max(1, GAME_STATE.currentPage + d); renderGrid(); }
@@ -344,42 +485,26 @@
         initAudio();
         if(GAME_STATE.isMusicPlaying) {
             clearInterval(bgmInterval); GAME_STATE.isMusicPlaying = false;
-            document.getElementById('musicBtn').classList.replace('text-blue-400', 'text-slate-400');
+            document.getElementById('musicBtn').classList.remove('text-blue-400');
         } else {
             GAME_STATE.isMusicPlaying = true;
-            document.getElementById('musicBtn').classList.replace('text-slate-400', 'text-blue-400');
-            bgmStep = 0;
+            document.getElementById('musicBtn').classList.add('text-blue-400');
             bgmInterval = setInterval(() => {
-                const scale = [220, 246.94, 277.18, 329.63, 369.99, 440];
-                const freqs = [scale[0], scale[2], scale[4], scale[1], scale[3], scale[5]];
-                playTone(freqs[bgmStep % freqs.length], 'triangle', 0.8, 0.05);
+                const notes = [261.63, 329.63, 392.00, 523.25];
+                playTone(notes[bgmStep % 4], 'sine', 0.8, 0.03);
                 bgmStep++;
-            }, 600);
+            }, 800);
         }
     }
 
     function simulateScan() {
-        const keys = [Object.keys(ENG3_DICT), Object.keys(ENG2_DICT)];
-        const rK = keys[Math.floor(Math.random()*2)];
-        const word = rK[Math.floor(Math.random()*rK.length)];
+        const words = ["CIA", "FBI", "BAD", "GOD", "SOS"];
+        const word = words[Math.floor(Math.random()*words.length)];
         const num = String(Math.floor(Math.random()*9999)).padStart(4, '0');
-        // 為了模擬效果直接加
-        GAME_STATE.collected.add(`${word.length===3?'ENG3':'ENG2'}_${word}`);
-        GAME_STATE.collected.add(`NUM4_${num}`);
-        addExp(50); 
+        collect(`ENG3_${word}`);
+        collect(`NUM4_${num}`);
         playSuccessSound();
-        renderTabs(); renderGrid(); showToast("模擬解鎖成功！");
-    }
-
-    function claimAch(id) { 
-        const ach = ACHIEVEMENTS.find(a => a.id === id);
-        if(ach && !ach.claimed) {
-            ach.claimed = true;
-            playAchievementSound(); 
-            addExp(ach.exp); 
-            showToast(`領取成就獎勵 +${ach.exp} EXP`); 
-            renderGrid();
-        }
+        renderTabs(); renderGrid(); showToast("模擬掃描: 解鎖特殊代碼！");
     }
 
     window.onload = init;
