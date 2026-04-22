@@ -2,315 +2,760 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kuoncyu 的數位學習樂園</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>車牌探險家</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root {
-            --primary-color: #3b82f6;
-            --math-color: #f59e0b;
-            --nature-color: #10b981;
-            --bg-color: #f8fafc;
-            --text-color: #1e293b;
-            --card-bg: #ffffff;
+        /* 隱藏捲軸但保留滾動功能 */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
         }
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; scroll-behavior: smooth; }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
         
-        /* Header Design */
-        header { 
-            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); 
-            color: white; 
-            padding: 5rem 1rem; 
-            text-align: center; 
-            position: relative;
-            overflow: hidden;
+        /* 掃描線動畫 */
+        @keyframes scan {
+            0% { top: 0%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
         }
-        header::before {
+        .scanner-line {
+            position: absolute;
+            width: 100%;
+            height: 4px;
+            background: rgba(0, 255, 0, 0.8);
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+            animation: scan 2s infinite linear;
+        }
+
+        /* 漸層文字 */
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* 台灣車牌樣式 */
+        .license-plate {
+            background: #ffffff;
+            border: 3px solid #000;
+            border-radius: 8px;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 900;
+            box-shadow: inset 0 0 0 2px #fff, 0 4px 6px rgba(0,0,0,0.3);
+            letter-spacing: 2px;
+            position: relative;
+        }
+        .license-plate::before {
             content: '';
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: url('star.png') center/cover;
-            opacity: 0.1;
-            mix-blend-mode: overlay;
+            top: 6px;
+            left: 6px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #333;
+            box-shadow: calc(100% - 12px) 0 0 #333;
         }
-        header h1 { margin: 0; font-size: 2.8rem; font-weight: 700; letter-spacing: 2px; position: relative; }
-        header p { font-size: 1.2rem; margin-top: 1rem; opacity: 0.9; position: relative; }
-
-        /* Navigation */
-        nav { display: flex; justify-content: center; gap: 1rem; margin-top: 2.5rem; flex-wrap: wrap; position: relative; }
-        nav a { 
-            color: white; text-decoration: none; padding: 0.6rem 1.8rem; 
-            border: 1px solid rgba(255,255,255,0.4); border-radius: 50px; 
-            background: rgba(255,255,255,0.1); backdrop-filter: blur(4px);
-            transition: all 0.3s; font-weight: 500;
-        }
-        nav a:hover { background: white; color: #1e3a8a; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-
-        /* Layout */
-        .container { max-width: 1200px; margin: 0 auto; padding: 2rem 1rem; }
-        
-        .section-wrapper { 
-            text-align: center; margin: 4rem 0 2rem; 
-            display: flex; align-items: center; justify-content: center;
-        }
-        .section-title { 
-            font-size: 2rem; color: #334155; margin: 0 1rem;
-            position: relative; font-weight: 700;
-        }
-        .section-line { height: 2px; background: #e2e8f0; flex-grow: 1; max-width: 100px; }
-
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 2rem; }
-
-        /* Card Style */
-        .card { 
-            background: var(--card-bg); border-radius: 16px; overflow: hidden; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: all 0.3s ease; 
-            text-decoration: none; color: inherit; display: flex; flex-direction: column; 
-            border: 1px solid #f1f5f9; position: relative;
-        }
-        .card:hover { transform: translateY(-8px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); }
-        
-        .card-image-container { width: 100%; height: 180px; background: #e2e8f0; overflow: hidden; position: relative; }
-        .card-image { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
-        .card:hover .card-image { transform: scale(1.08); }
-        
-        .card-content { padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column; }
-        .card-title { font-size: 1.35rem; margin: 0 0 0.5rem; font-weight: 700; color: #1e293b; }
-        .card-desc { font-size: 0.95rem; color: #64748b; margin-bottom: 1.2rem; flex-grow: 1; line-height: 1.6; }
-        
-        .card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
-        .card-tag { padding: 0.3rem 0.8rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
-        
-        /* Specific Colors */
-        .tag-puzzle { background: #eff6ff; color: #2563eb; }
-        .tag-math { background: #fff7ed; color: #ea580c; }
-        .tag-nature { background: #ecfdf5; color: #059669; }
-
-        .btn-go { 
-            width: 32px; height: 32px; border-radius: 50%; background: #f1f5f9; 
-            display: flex; align-items: center; justify-content: center; color: #64748b;
-            transition: 0.3s;
-        }
-        .card:hover .btn-go { background: #3b82f6; color: white; }
-
-        footer { text-align: center; padding: 4rem 2rem; margin-top: 5rem; background: #f8fafc; color: #94a3b8; border-top: 1px solid #e2e8f0; }
     </style>
 </head>
-<body>
+<body class="bg-slate-900 text-slate-100 h-screen w-screen overflow-hidden flex flex-col font-sans select-none">
 
-    <header>
-        <h1>Kuoncyu 的數位學習樂園</h1>
-        <p>寓教於樂 • 探索自然 • 邏輯思考</p>
-        <nav>
-            <a href="#puzzle">🧩 益智遊戲</a>
-            <a href="#math">🔢 數學挑戰</a>
-            <a href="#nature">🌿 自然圖鑑</a>
-        </nav>
-    </header>
-
-    <div class="container">
-        
-        <div id="puzzle">
-            <div class="section-wrapper">
-                <div class="section-line"></div>
-                <h2 class="section-title">🧩 益智挑戰</h2>
-                <div class="section-line"></div>
-            </div>
-            <div class="grid">
-                
-                <a href="https://kuoncyu.github.io/Memory-Journey/" target="_blank" class="card">
-                    <div class="card-image-container"><img src="journey.png" alt="記憶之旅" class="card-image"></div>
-                    <div class="card-content">
-                        <h3 class="card-title">Memory Journey 記憶之旅</h3>
-                        <p class="card-desc">循著旅程的軌跡，挑戰大腦記憶的極限，你能記住多少細節？</p>
-                        <div class="card-footer"><span class="card-tag tag-puzzle">記憶訓練</span><div class="btn-go">➜</div></div>
-                    </div>
-                </a>
-
-                <a href="https://kuoncyu.github.io/word-warrior/" target="_blank" class="card">
-                    <div class="card-image-container"><img src="warrior.png" alt="Word Warrior" class="card-image"></div>
-                    <div class="card-content">
-                        <h3 class="card-title">Word Warrior 文字戰士</h3>
-                        <p class="card-desc">自我進化版 V21！在熱血的戰鬥中考驗你的中文字音字形能力。</p>
-                        <div class="card-footer"><span class="card-tag tag-puzzle">字音字形</span><div class="btn-go">➜</div></div>
-                    </div>
-                </a>
-
-                <a href="https://kuoncyu.github.io/Idiom-Rubik-s-Cube/" target="_blank" class="card">
-                    <div class="card-image-container"><img src="rubiks.png" alt="成語魔方" class="card-image"></div>
-                    <div class="card-content">
-                        <h3 class="card-title">成語魔方 (Rubik's Cube)</h3>
-                        <p class="card-desc">地獄級挑戰！拖曳轉動 3D 骰子，尋找線索拼湊出成語。</p>
-                        <div class="card-footer"><span class="card-tag tag-puzzle">3D解謎</span><div class="btn-go">➜</div></div>
-                    </div>
-                </a>
-
-                <a href="https://kuoncyu.github.io/L-chess/" target="_blank" class="card">
-                    <div class="card-image-container"><img src="l-chess.png" alt="L棋" class="card-image"></div>
-                    <div class="card-content">
-                        <h3 class="card-title">L棋 (L-Chess)</h3>
-                        <p class="card-desc">經典策略棋類，考驗你的空間佈局與防守進攻能力。</p>
-                        <div class="card-footer"><span class="card-tag tag-puzzle">策略</span><div class="btn-go">➜</div></div>
-                    </div>
-                </a>
-                <a href="https://kuoncyu.github.io/Idiom-Master/" target="_blank" class="card">
-                    <div class="card-image-container"><img src="idiom.png" alt="成語大師" class="card-image"></div>
-                    <div class="card-content">
-                        <h3 class="card-title">成語大師</h3>
-                        <p class="card-desc">寓教於樂的成語填空與接龍，挑戰你的詞彙量。</p>
-                        <div class="card-footer"><span class="card-tag tag-puzzle">語文</span><div class="btn-go">➜</div></div>
-                    </div>
-                </a>
-                <a href="https://kuoncyu.github.io/science-challenge/" target="_blank" class="card">
-                    <div class="card-image-container"><img src="science.png" alt="自然挑戰" class="card-image"></div>
-                    <div class="card-content">
-                        <h3 class="card-title">自然挑戰</h3>
-                        <p class="card-desc">勇者試煉！關於自然科學的趣味問答與冒險。</p>
-                        <div class="card-footer"><span class="card-tag tag-puzzle">科普</span><div class="btn-go">➜</div></div>
-                    </div>
-                </a>
-                <a href="https://kuoncyu.github.io/memory-challenge/" target="_blank" class="card">
-                    <div class="card-image-container"><img src="memory.png" alt="記憶力大考驗" class="card-image"></div>
-                    <div class="card-content">
-                        <h3 class="card-title">記憶力大考驗</h3>
-                        <p class="card-desc">眼明手快！專注記憶圖片中的顏色與數量。</p>
-                        <div class="card-footer"><span class="card-tag tag-puzzle">腦力</span><div class="btn-go">➜</div></div>
-                    </div>
-                </a>
-            </div>
-        </div>
-
-        <div id="math">
-            <div class="section-wrapper">
-                <div class="section-line"></div>
-                <h2 class="section-title">🔢 數學神童</h2>
-                <div class="section-line"></div>
-            </div>
-            <div class="grid">
-
-                <a href="https://kuoncyu.github.io/47-Mind-Reading/" target="_blank" class="card">
-                    <div class="card-image-container"><img src="mind.png" alt="47讀心術" class="card-image"></div>
-                    <div class="card-content">
-                        <h3 class="card-title">47讀心術</h3>
-                        <p class="card-desc">神奇的數學魔術！透過簡單的運算規律，看穿你心中所想的數字。</p>
-                        <div class="card-footer"><span class="card-tag tag-math">數學魔術</span><div class="btn-go">➜</div></div>
-                    </div>
-                </a>
-                
-                <a href="https://kuoncyu.github.io/Monkey-Switching-Positions-Challenge/" target="_blank" class="card">
-                    <div class="card-image-container"><img src="monkey.png" alt="猴子換位大挑戰" class="card-image"></div>
-                    <div class="card-content">
-                        <h3 class="card-title">猴子換位大挑戰</h3>
-                        <p class="card-desc">經典的邏輯移位解謎，動動腦，找出最少步數完成猴子位置互換。</p>
-                        <div class="card-footer"><span class="card-tag tag-math">邏輯推理</span><div class="btn-go">➜</div></div>
-                    </div>
-                </a>
-
-                <a href="https://kuoncyu.github.io/plate-number/" target="_blank" class="card">
-                    <div class="card-image-container"><img src="math.png" alt="車牌數學" class="card-image"></div>
-                    <div class="card-content">
-                        <h3 class="card-title">車牌數學神童</h3>
-                        <p class="card-desc">看到車牌就想算？利用四則運算挑戰快速解題。</p>
-                        <div class="card-footer"><span class="card-tag tag-math">心算</span><div class="btn-go">➜</div></div>
-                    </div>
-                </a>
-                <a href="https://kuoncyu.github.io/The-digital-lock-of-the-time-traveler/" target="_blank" class="card">
-                    <div class="card-image-container"><img src="lock.jpg" alt="時空旅人的數字鎖" class="card-image"></div>
-                    <div class="card-content">
-                        <h3 class="card-title">時空旅人的數字鎖</h3>
-                        <p class="card-desc">解開層層謎題，填入正確運算符號，找出密碼。</p>
-                        <div class="card-footer"><span class="card-tag tag-math">解謎</span><div class="btn-go">➜</div></div>
-                    </div>
-                </a>
-                <a href="https://kuoncyu.github.io/Numerical-logic-puzzle/" target="_blank" class="card">
-                    <div class="card-image-container"><img src="logic.png" alt="數字邏輯" class="card-image"></div>
-                    <div class="card-content">
-                        <h3 class="card-title">數字邏輯解謎</h3>
-                        <p class="card-desc">觀察數字間的規律與大小，推理出隱藏的答案。</p>
-                        <div class="card-footer"><span class="card-tag tag-math">推理</span><div class="btn-go">➜</div></div>
-                    </div>
-                </a>
-            </div>
-        </div>
-
-        <div id="nature">
-            <div class="section-wrapper">
-                <div class="section-line"></div>
-                <h2 class="section-title">🌿 台灣生態圖鑑</h2>
-                <div class="section-line"></div>
-            </div>
-            <div class="grid">
-                <a href="https://kuoncyu.github.io/butterfly/" target="_blank" class="card">
-                    <div class="card-image-container"><img src="butterfly.png" alt="蝴蝶圖鑑" class="card-image"></div>
-                    <div class="card-content">
-                        <h3 class="card-title">蝴蝶圖鑑挑戰</h3>
-                        <p class="card-desc">鳳蝶、斑蝶分辨得出來嗎？台灣蝴蝶王國的美麗身影。</p>
-                        <div class="card-footer"><span class="card-tag tag-nature">昆蟲</span><div class="btn-go">➜</div></div>
-                    </div>
-                </a>
-                <a href="https://kuoncyu.github.io/Place_name/" target="_blank" class="card">
-                    <div class="card-image-container"><img src="place.jpg" alt="地名考驗" class="card-image"></div>
-                    <div class="card-content">
-                        <h3 class="card-title">台灣地名考驗</h3>
-                        <p class="card-desc">看圖猜地名，測試你對台灣地理與歷史的熟悉度。</p>
-                        <div class="card-footer"><span class="card-tag tag-nature">地理</span><div class="btn-go">➜</div></div>
-                    </div>
-                </a>
-                <a href="https://kuoncyu.github.io/Amphibians/" target="_blank" class="card">
-                    <div class="card-image-container"><img src="frog.jpg" alt="兩棲類" class="card-image"></div>
-                    <div class="card-content">
-                        <h3 class="card-title">台灣兩棲類</h3>
-                        <p class="card-desc">探索台灣豐富的蛙類與兩棲生態，聽音辨位。</p>
-                        <div class="card-footer"><span class="card-tag tag-nature">生物</span><div class="btn-go">➜</div></div>
-                    </div>
-                </a>
-                <a href="https://kuoncyu.github.io/plant/" target="_blank" class="card">
-                    <div class="card-image-container"><img src="plant.jpg" alt="常見植物" class="card-image"></div>
-                    <div class="card-content">
-                        <h3 class="card-title">台灣常見植物</h3>
-                        <p class="card-desc">路邊的小花小草叫什麼名字？校園常見植物辨識。</p>
-                        <div class="card-footer"><span class="card-tag tag-nature">植物</span><div class="btn-go">➜</div></div>
-                    </div>
-                </a>
-                <a href="https://kuoncyu.github.io/bird/" target="_blank" class="card">
-                    <div class="card-image-container"><img src="bird.jpg" alt="鳥類挑戰" class="card-image"></div>
-                    <div class="card-content">
-                        <h3 class="card-title">台灣鳥類挑戰</h3>
-                        <p class="card-desc">認識翱翔天際的台灣飛羽，成為小小賞鳥達人。</p>
-                        <div class="card-footer"><span class="card-tag tag-nature">賞鳥</span><div class="btn-go">➜</div></div>
-                    </div>
-                </a>
-                <a href="https://kuoncyu.github.io/sea/" target="_blank" class="card">
-                    <div class="card-image-container"><img src="sea.png" alt="濱海生態" class="card-image"></div>
-                    <div class="card-content">
-                        <h3 class="card-title">台灣濱海生態</h3>
-                        <p class="card-desc">招潮蟹、彈塗魚，一起觀察海岸線的奇妙生物。</p>
-                        <div class="card-footer"><span class="card-tag tag-nature">海洋</span><div class="btn-go">➜</div></div>
-                    </div>
-                </a>
-                <a href="https://kuoncyu.github.io/Star/" target="_blank" class="card">
-                    <div class="card-image-container"><img src="star.png" alt="星空辨識" class="card-image"></div>
-                    <div class="card-content">
-                        <h3 class="card-title">星空辨識</h3>
-                        <p class="card-desc">仰望夜空，你能認出夏季大三角或北極星嗎？</p>
-                        <div class="card-footer"><span class="card-tag tag-nature">天文</span><div class="btn-go">➜</div></div>
-                    </div>
-                </a>
-                <a href="https://kuoncyu.github.io/Deep-sky-object/" target="_blank" class="card">
-                    <div class="card-image-container"><img src="deep-sky.jpg" alt="深空星體" class="card-image"></div>
-                    <div class="card-content">
-                        <h3 class="card-title">深空星體</h3>
-                        <p class="card-desc">探索宇宙深處的星雲、星團與遙遠星系。</p>
-                        <div class="card-footer"><span class="card-tag tag-nature">天文</span><div class="btn-go">➜</div></div>
-                    </div>
-                </a>
-            </div>
-        </div>
+    <!-- 頂部通知浮水印 -->
+    <div id="notification" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-full shadow-lg font-bold z-50 transition-all duration-300 opacity-0 pointer-events-none translate-y-[-20px]">
+        通知訊息
     </div>
 
-    <footer>
-        <p>© 2026 Kuoncyu. All Rights Reserved. <br>Design for Learning & Exploration.</p>
-    </footer>
+    <!-- 主要內容區 -->
+    <main class="flex-1 overflow-y-auto no-scrollbar relative w-full max-w-md mx-auto bg-slate-800 shadow-2xl">
+        
+        <!-- ================= [ 首頁儀表板 ] ================= -->
+        <section id="view-home" class="p-6 h-full flex flex-col">
+            <h1 class="text-3xl font-black text-center mb-8 bg-gradient-to-r from-blue-400 to-emerald-400 text-gradient">車牌探險家</h1>
+            
+            <div class="bg-slate-700 rounded-2xl p-6 shadow-lg mb-6 relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10">
+                    <svg width="100" height="100" viewBox="0 0 24 24" fill="currentColor"><path d="M5 15H19V17H5V15ZM5 11H19V13H5V11ZM5 7H19V9H5V7ZM3 3H21C22.1 3 23 3.9 23 5V19C23 20.1 22.1 21 21 21H3C1.9 21 1 20.1 1 19V5C1 3.9 1.9 3 3 3ZM3 5V19H21V5H3Z"/></svg>
+                </div>
+                <div class="text-emerald-400 text-sm font-bold tracking-widest mb-1">CURRENT TITLE</div>
+                <div id="ui-title" class="text-3xl font-bold mb-4 text-white">菜鳥探險家</div>
+                
+                <div class="flex justify-between items-end mb-2">
+                    <div class="text-lg font-bold">Level <span id="ui-level" class="text-2xl text-blue-400">1</span></div>
+                    <div class="text-sm text-slate-400"><span id="ui-exp">0</span> / <span id="ui-max-exp">100</span> EXP</div>
+                </div>
+                <div class="w-full bg-slate-900 rounded-full h-3 mb-2">
+                    <div id="ui-exp-bar" class="bg-gradient-to-r from-blue-500 to-emerald-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
 
+            <h2 class="text-xl font-bold mb-4 border-l-4 border-emerald-400 pl-3">圖鑑蒐集總覽</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-slate-700 p-4 rounded-xl text-center">
+                    <div class="text-slate-400 text-xs mb-1">4位數車牌</div>
+                    <div id="ui-prog-num4" class="text-2xl font-bold text-white">0%</div>
+                </div>
+                <div class="bg-slate-700 p-4 rounded-xl text-center">
+                    <div class="text-slate-400 text-xs mb-1">3位數車牌</div>
+                    <div id="ui-prog-num3" class="text-2xl font-bold text-white">0%</div>
+                </div>
+                <div class="bg-slate-700 p-4 rounded-xl text-center">
+                    <div class="text-slate-400 text-xs mb-1">3位英文車牌</div>
+                    <div id="ui-prog-eng3" class="text-2xl font-bold text-white">0%</div>
+                </div>
+                <div class="bg-slate-700 p-4 rounded-xl text-center">
+                    <div class="text-slate-400 text-xs mb-1">2位英文車牌</div>
+                    <div id="ui-prog-eng2" class="text-2xl font-bold text-white">0%</div>
+                </div>
+            </div>
+            
+            <div class="mt-auto pt-6 text-center text-slate-500 text-xs">
+                遊戲資料自動儲存於瀏覽器中
+            </div>
+        </section>
+
+        <!-- ================= [ 掃描頁面 ] ================= -->
+        <section id="view-scan" class="hidden p-6 h-full flex flex-col items-center">
+            <h2 class="text-2xl font-bold mb-6">掃描車牌</h2>
+            
+            <div class="w-full aspect-square bg-slate-900 rounded-2xl mb-8 relative overflow-hidden flex items-center justify-center border-2 border-dashed border-slate-600">
+                <!-- 預覽畫布 -->
+                <canvas id="preview-canvas" class="absolute inset-0 w-full h-full object-cover hidden"></canvas>
+                
+                <!-- 預設提示 -->
+                <div id="scan-prompt" class="text-slate-500 flex flex-col items-center">
+                    <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <span>點擊下方按鈕開啟相機或相簿</span>
+                </div>
+
+                <!-- 掃描動畫層 -->
+                <div id="scan-overlay" class="hidden absolute inset-0 bg-black/40">
+                    <div class="scanner-line"></div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <span class="text-green-400 font-bold text-xl tracking-widest animate-pulse">AI 辨識中...</span>
+                    </div>
+                </div>
+            </div>
+
+            <label class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-6 rounded-xl text-center cursor-pointer shadow-lg transition-colors flex items-center justify-center gap-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                拍攝 / 匯入相片
+                <input type="file" accept="image/*" capture="environment" class="hidden" id="file-input">
+            </label>
+
+            <!-- 掃描結果彈窗 -->
+            <div id="result-modal" class="hidden fixed inset-0 z-40 bg-black/80 flex items-center justify-center p-4">
+                <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-sm text-center transform scale-95 transition-transform duration-300" id="result-modal-content">
+                    <h3 class="text-xl font-bold mb-2 text-emerald-400" id="result-title">發現新車牌！</h3>
+                    <p class="text-slate-400 text-sm mb-6" id="result-desc">成功收錄至圖鑑中</p>
+                    
+                    <div class="license-plate text-black text-4xl py-4 px-6 mb-6 inline-block" id="result-plate">
+                        ABC-1234
+                    </div>
+                    
+                    <div class="text-blue-400 font-bold text-xl mb-6" id="result-exp">+ 50 EXP</div>
+                    
+                    <button id="btn-close-result" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-xl transition-colors">
+                        繼續探險
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= [ 圖鑑頁面 ] ================= -->
+        <section id="view-pokedex" class="hidden p-0 h-full flex flex-col">
+            <div class="p-6 pb-2 bg-slate-800 shadow-md z-10">
+                <h2 class="text-2xl font-bold mb-4">車牌圖鑑</h2>
+                
+                <!-- 頁籤 -->
+                <div class="flex space-x-1 bg-slate-900 p-1 rounded-lg text-sm">
+                    <button class="tab-btn flex-1 py-2 text-center rounded-md bg-slate-700 font-bold" data-tab="num4">4位數</button>
+                    <button class="tab-btn flex-1 py-2 text-center rounded-md text-slate-400" data-tab="num3">3位數</button>
+                    <button class="tab-btn flex-1 py-2 text-center rounded-md text-slate-400" data-tab="eng3">3位英文</button>
+                    <button class="tab-btn flex-1 py-2 text-center rounded-md text-slate-400" data-tab="eng2">2位英文</button>
+                </div>
+            </div>
+
+            <!-- 圖鑑內容區 -->
+            <div id="pokedex-container" class="flex-1 overflow-y-auto p-6 bg-slate-800/50 flex flex-col">
+                <div class="mb-4">
+                    <div class="flex justify-between text-sm mb-1">
+                        <span class="text-slate-400" id="pokedex-desc">蒐集進度</span>
+                        <span class="font-bold text-emerald-400" id="pokedex-pct">0% (0 / 10000)</span>
+                    </div>
+                    <div class="w-full bg-slate-900 rounded-full h-2">
+                        <div id="pokedex-bar" class="bg-emerald-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- 分頁控制器 (數字車牌專用) -->
+                <div id="pokedex-pagination" class="hidden flex justify-between items-center mb-4 bg-slate-700 p-2 rounded-lg">
+                    <button id="btn-prev-page" class="px-3 py-1 bg-slate-600 hover:bg-slate-500 rounded text-sm text-white font-bold disabled:opacity-30 transition-opacity">&lt; 上一頁</button>
+                    <span id="page-indicator" class="text-sm font-bold text-slate-300">第 1 / 100 頁</span>
+                    <button id="btn-next-page" class="px-3 py-1 bg-slate-600 hover:bg-slate-500 rounded text-sm text-white font-bold disabled:opacity-30 transition-opacity">下一頁 &gt;</button>
+                </div>
+
+                <!-- 動態生成的車牌列表 -->
+                <div id="pokedex-grid" class="grid grid-cols-2 gap-3 pb-8">
+                    <!-- 車牌卡片會生在這裡 -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= [ 成就頁面 ] ================= -->
+        <section id="view-achievements" class="hidden p-6 h-full flex flex-col">
+            <h2 class="text-2xl font-bold mb-6">探險成就</h2>
+            <div class="flex-1 overflow-y-auto no-scrollbar pb-8 space-y-3" id="achievements-list">
+                <!-- 成就列表會生在這裡 -->
+            </div>
+        </section>
+    </main>
+
+    <!-- 底部導覽列 -->
+    <nav class="bg-slate-900 border-t border-slate-800 w-full max-w-md mx-auto pb-safe">
+        <ul class="flex justify-around items-center p-2">
+            <li class="flex-1">
+                <button class="nav-btn w-full py-3 flex flex-col items-center text-blue-400 transition-colors" data-target="view-home">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    <span class="text-xs font-bold">主頁</span>
+                </button>
+            </li>
+            <li class="flex-1">
+                <button class="nav-btn w-full py-3 flex flex-col items-center text-slate-500 hover:text-slate-300 transition-colors" data-target="view-scan">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <span class="text-xs font-bold">掃描</span>
+                </button>
+            </li>
+            <li class="flex-1">
+                <button class="nav-btn w-full py-3 flex flex-col items-center text-slate-500 hover:text-slate-300 transition-colors" data-target="view-pokedex">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                    <span class="text-xs font-bold">圖鑑</span>
+                </button>
+            </li>
+            <li class="flex-1 relative">
+                <button class="nav-btn w-full py-3 flex flex-col items-center text-slate-500 hover:text-slate-300 transition-colors" data-target="view-achievements">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+                    <span class="text-xs font-bold">成就</span>
+                    <span id="achieve-badge" class="hidden absolute top-1 right-2 bg-red-500 w-3 h-3 rounded-full border-2 border-slate-900"></span>
+                </button>
+            </li>
+        </ul>
+    </nav>
+
+    <script>
+        // ================= [ 遊戲資料設定 ] =================
+        const TITLES = [
+            "菜鳥探險家", "街頭觀察員", "車牌獵人", "尋寶達人", "馬路偵探",
+            "數字密碼專家", "字母解析大師", "傳奇蒐藏家", "車牌學霸", "終極車牌之神"
+        ];
+
+        // 3位英文特殊單字與中文翻譯 (50個)
+        const ENG3_WORDS = [
+            {word: "ANT", tw: "螞蟻"}, {word: "ATM", tw: "提款機"}, {word: "BUS", tw: "公車"}, {word: "CAR", tw: "汽車"}, {word: "DOG", tw: "狗"},
+            {word: "CAT", tw: "貓"}, {word: "PIG", tw: "豬"}, {word: "COW", tw: "牛"}, {word: "FOX", tw: "狐狸"}, {word: "BAT", tw: "蝙蝠"},
+            {word: "OWL", tw: "貓頭鷹"}, {word: "BUG", tw: "蟲"}, {word: "BEE", tw: "蜜蜂"}, {word: "FLY", tw: "蒼蠅"}, {word: "SUN", tw: "太陽"},
+            {word: "SEA", tw: "海洋"}, {word: "SKY", tw: "天空"}, {word: "AIR", tw: "空氣"}, {word: "ICE", tw: "冰塊"}, {word: "HOT", tw: "炎熱"},
+            {word: "DRY", tw: "乾燥"}, {word: "WET", tw: "潮濕"}, {word: "BOY", tw: "男孩"}, {word: "MAN", tw: "男人"}, {word: "MOM", tw: "媽媽"},
+            {word: "DAD", tw: "爸爸"}, {word: "BRO", tw: "兄弟"}, {word: "SIS", tw: "姊妹"}, {word: "YAY", tw: "歡呼"}, {word: "WOW", tw: "驚嘆"},
+            {word: "LOL", tw: "大笑"}, {word: "OMG", tw: "我的天"}, {word: "VIP", tw: "貴賓"}, {word: "CEO", tw: "執行長"}, {word: "UFO", tw: "幽浮"},
+            {word: "FBI", tw: "聯邦調查局"}, {word: "CIA", tw: "中情局"}, {word: "WHO", tw: "世衛組織"}, {word: "USA", tw: "美國"}, {word: "TWN", tw: "台灣"},
+            {word: "TPE", tw: "台北"}, {word: "APP", tw: "應用程式"}, {word: "WEB", tw: "網頁"}, {word: "NET", tw: "網路"}, {word: "MAC", tw: "蘋果電腦"},
+            {word: "CPU", tw: "處理器"}, {word: "RAM", tw: "記憶體"}, {word: "USB", tw: "隨身碟"}, {word: "PDF", tw: "文件格式"}, {word: "API", tw: "應用程式介面"}
+        ];
+
+        // 2位英文特殊單字與中文翻譯 (30個)
+        const ENG2_WORDS = [
+            {word: "AM", tw: "上午"}, {word: "FM", tw: "調頻廣播"}, {word: "PM", tw: "下午"}, {word: "GU", tw: "關島"}, {word: "OK", tw: "好的"},
+            {word: "HI", tw: "嗨"}, {word: "GO", tw: "去"}, {word: "UP", tw: "向上"}, {word: "NO", tw: "不"}, {word: "DO", tw: "做"},
+            {word: "BE", tw: "是/成為"}, {word: "ME", tw: "我"}, {word: "WE", tw: "我們"}, {word: "HE", tw: "他"}, {word: "IT", tw: "它"},
+            {word: "AS", tw: "如同"}, {word: "AT", tw: "在"}, {word: "IN", tw: "裡面"}, {word: "ON", tw: "上面"}, {word: "BY", tw: "藉由"},
+            {word: "OR", tw: "或者"}, {word: "IS", tw: "是"}, {word: "MY", tw: "我的"}, {word: "SO", tw: "所以"}, {word: "TO", tw: "到"},
+            {word: "US", tw: "我們"}, {word: "YA", tw: "呀"}, {word: "YO", tw: "喲"}, {word: "AH", tw: "啊"}, {word: "OH", tw: "喔"}
+        ];
+
+        const TOTALS = {
+            num4: 10000,
+            num3: 1000,
+            eng3: ENG3_WORDS.length,
+            eng2: ENG2_WORDS.length
+        };
+
+        // 分頁設定
+        const ITEMS_PER_PAGE = 100;
+        let pokedexPage = 0;
+
+        // 生成 100 個成就目標
+        function generateAchievements() {
+            let achs = [];
+            let id = 1;
+
+            // 1. 總蒐集 (15)
+            const totals = [1, 5, 10, 25, 50, 75, 100, 150, 200, 300, 400, 500, 750, 1000, 2000];
+            totals.forEach(t => achs.push({id: id++, type: 'total', target: t, desc: `總共蒐集 ${t} 個車牌`, exp: t * 5}));
+
+            // 2. 4位數 (25)
+            const num4s = [1, 5, 10, 20, 30, 40, 50, 75, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 3000, 4000, 5000];
+            num4s.forEach(t => achs.push({id: id++, type: 'num4', target: t, desc: `蒐集 ${t} 個 4位數車牌`, exp: t * 2}));
+
+            // 3. 3位數 (25)
+            const num3s = [1, 5, 10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200, 250, 300, 350, 400, 450, 500, 600, 700, 800, 900, 950, 1000];
+            num3s.forEach(t => achs.push({id: id++, type: 'num3', target: t, desc: `蒐集 ${t} 個 3位數車牌`, exp: t * 3}));
+
+            // 4. 3位英文 (15)
+            const eng3s = [1, 2, 3, 5, 8, 10, 15, 20, 25, 30, 35, 40, 45, 48, 50];
+            eng3s.forEach(t => achs.push({id: id++, type: 'eng3', target: t, desc: `蒐集 ${t} 個 3位英文車牌`, exp: t * 15}));
+
+            // 5. 2位英文 (11)
+            const eng2s = [1, 2, 3, 5, 8, 10, 15, 20, 25, 28, 30];
+            eng2s.forEach(t => achs.push({id: id++, type: 'eng2', target: t, desc: `蒐集 ${t} 個 2位英文車牌`, exp: t * 20}));
+
+            // 6. 等級 (9)
+            for(let l = 2; l <= 10; l++) {
+                achs.push({id: id++, type: 'level', target: l, desc: `達到等級 ${l}`, exp: l * 50});
+            }
+
+            return achs;
+        }
+
+        const ACHIEVEMENTS = generateAchievements(); // 剛好 100 個
+
+        // 取得升級所需經驗值
+        function getExpForLevel(level) {
+            if (level >= 10) return 999999;
+            const base = [0, 100, 300, 600, 1000, 1500, 2100, 2800, 3600, 4500];
+            return base[level] || 999999;
+        }
+
+        // ================= [ 遊戲狀態管理 ] =================
+        let state = {
+            level: 1,
+            exp: 0,
+            collected: {
+                num4: [],
+                num3: [],
+                eng3: [],
+                eng2: []
+            },
+            claimedAchievements: []
+        };
+
+        // 讀取存檔
+        function loadState() {
+            const saved = localStorage.getItem('plateExplorerState');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    state = { ...state, ...parsed };
+                } catch(e) { console.error("存檔損毀"); }
+            }
+        }
+
+        // 儲存進度
+        function saveState() {
+            localStorage.setItem('plateExplorerState', JSON.stringify(state));
+            updateUI();
+        }
+
+        // ================= [ 核心邏輯 ] =================
+
+        // 顯示通知
+        function showNotification(msg) {
+            const el = document.getElementById('notification');
+            el.textContent = msg;
+            el.style.opacity = '1';
+            el.style.transform = 'translate(-50%, 0)';
+            setTimeout(() => {
+                el.style.opacity = '0';
+                el.style.transform = 'translate(-50%, -20px)';
+            }, 3000);
+        }
+
+        // 增加經驗值與判斷升級
+        function addExp(amount) {
+            state.exp += amount;
+            let leveledUp = false;
+            
+            while (state.level < 10 && state.exp >= getExpForLevel(state.level)) {
+                state.exp -= getExpForLevel(state.level);
+                state.level++;
+                leveledUp = true;
+            }
+            
+            if (state.level >= 10) {
+                state.level = 10;
+                state.exp = 0; // 滿級
+            }
+
+            if (leveledUp) {
+                setTimeout(() => {
+                    showNotification(`🎉 升級到 Level ${state.level}！獲得稱號：${TITLES[state.level - 1]}`);
+                }, 500);
+            }
+            saveState();
+        }
+
+        // 判斷哪些成就已達成但尚未領取
+        function getClaimableAchievements() {
+            const totalCollected = state.collected.num4.length + state.collected.num3.length + state.collected.eng3.length + state.collected.eng2.length;
+            
+            return ACHIEVEMENTS.filter(a => {
+                if (state.claimedAchievements.includes(a.id)) return false;
+                
+                switch(a.type) {
+                    case 'total': return totalCollected >= a.target;
+                    case 'num4': return state.collected.num4.length >= a.target;
+                    case 'num3': return state.collected.num3.length >= a.target;
+                    case 'eng3': return state.collected.eng3.length >= a.target;
+                    case 'eng2': return state.collected.eng2.length >= a.target;
+                    case 'level': return state.level >= a.target;
+                    default: return false;
+                }
+            });
+        }
+
+        // 創建車牌卡片的 DOM 元素
+        function createPlateCard(text, isCollected, translation = null) {
+            const el = document.createElement('div');
+            
+            if (isCollected) {
+                // 已蒐集：明亮樣式
+                el.className = 'bg-white rounded-md border-2 border-black p-2 text-center shadow-md transform transition-transform hover:scale-105 opacity-100';
+                let html = `
+                    <div class="text-[10px] text-gray-500 mb-1 tracking-widest font-sans">TAIWAN</div>
+                    <div class="font-mono font-bold text-black text-lg tracking-widest">${text}</div>
+                `;
+                if (translation) {
+                    html += `<div class="text-xs text-blue-700 font-bold mt-1 bg-blue-100 rounded-sm py-0.5">${translation}</div>`;
+                }
+                el.innerHTML = html;
+            } else {
+                // 未蒐集：灰色鎖定樣式
+                el.className = 'bg-slate-700 rounded-md border-2 border-slate-600 p-2 text-center shadow-inner opacity-60';
+                let html = `
+                    <div class="text-[10px] text-slate-500 mb-1 tracking-widest font-sans">TAIWAN</div>
+                    <div class="font-mono font-bold text-slate-400 text-lg tracking-widest">${text}</div>
+                `;
+                if (translation) {
+                    html += `<div class="text-xs text-slate-400 font-bold mt-1 bg-slate-800 rounded-sm py-0.5">${translation}</div>`;
+                }
+                el.innerHTML = html;
+            }
+            return el;
+        }
+
+        // ================= [ UI 更新邏輯 ] =================
+        let currentPokedexTab = 'num4';
+
+        function updateUI() {
+            // 1. Home Dashboard
+            document.getElementById('ui-level').textContent = state.level;
+            const maxExp = state.level >= 10 ? 'MAX' : getExpForLevel(state.level);
+            document.getElementById('ui-exp').textContent = state.level >= 10 ? 'MAX' : state.exp;
+            document.getElementById('ui-max-exp').textContent = maxExp;
+            
+            const expPct = state.level >= 10 ? 100 : (state.exp / maxExp) * 100;
+            document.getElementById('ui-exp-bar').style.width = `${expPct}%`;
+            document.getElementById('ui-title').textContent = TITLES[state.level - 1];
+
+            // Percentages
+            const pNum4 = ((state.collected.num4.length / TOTALS.num4) * 100).toFixed(2);
+            const pNum3 = ((state.collected.num3.length / TOTALS.num3) * 100).toFixed(1);
+            const pEng3 = ((state.collected.eng3.length / TOTALS.eng3) * 100).toFixed(1);
+            const pEng2 = ((state.collected.eng2.length / TOTALS.eng2) * 100).toFixed(1);
+
+            document.getElementById('ui-prog-num4').textContent = `${pNum4}%`;
+            document.getElementById('ui-prog-num3').textContent = `${pNum3}%`;
+            document.getElementById('ui-prog-eng3').textContent = `${pEng3}%`;
+            document.getElementById('ui-prog-eng2').textContent = `${pEng2}%`;
+
+            // Badge for achievements
+            const claimable = getClaimableAchievements();
+            document.getElementById('achieve-badge').style.display = claimable.length > 0 ? 'block' : 'none';
+
+            // Update active views
+            updatePokedexView();
+            updateAchievementsView();
+        }
+
+        function updatePokedexView() {
+            const list = state.collected[currentPokedexTab] || [];
+            const total = TOTALS[currentPokedexTab];
+            const pct = ((list.length / total) * 100).toFixed(2);
+
+            // 更新進度條
+            document.getElementById('pokedex-pct').textContent = `${pct}% (${list.length} / ${total})`;
+            document.getElementById('pokedex-bar').style.width = `${pct}%`;
+
+            const grid = document.getElementById('pokedex-grid');
+            grid.innerHTML = '';
+            
+            const pageControls = document.getElementById('pokedex-pagination');
+            const indicator = document.getElementById('page-indicator');
+            const btnPrev = document.getElementById('btn-prev-page');
+            const btnNext = document.getElementById('btn-next-page');
+
+            // 判斷是否需要顯示分頁 (數字車牌需要分頁)
+            if (currentPokedexTab === 'num4' || currentPokedexTab === 'num3') {
+                pageControls.classList.remove('hidden');
+                
+                const maxPage = Math.ceil(total / ITEMS_PER_PAGE);
+                indicator.textContent = `第 ${pokedexPage + 1} / ${maxPage} 頁`;
+                
+                btnPrev.disabled = pokedexPage === 0;
+                btnNext.disabled = pokedexPage >= maxPage - 1;
+
+                const startIdx = pokedexPage * ITEMS_PER_PAGE;
+                const endIdx = Math.min(startIdx + ITEMS_PER_PAGE, total);
+                const padLen = currentPokedexTab === 'num4' ? 4 : 3;
+
+                for (let i = startIdx; i < endIdx; i++) {
+                    const val = String(i).padStart(padLen, '0');
+                    const isCollected = list.includes(val);
+                    grid.appendChild(createPlateCard(val, isCollected));
+                }
+            } else {
+                // 英文車牌數量少，直接全部顯示，不需分頁
+                pageControls.classList.add('hidden');
+                
+                const wordsArr = currentPokedexTab === 'eng3' ? ENG3_WORDS : ENG2_WORDS;
+                wordsArr.forEach(item => {
+                    const isCollected = list.includes(item.word);
+                    grid.appendChild(createPlateCard(item.word, isCollected, item.tw));
+                });
+            }
+        }
+
+        // 分頁按鈕事件
+        document.getElementById('btn-prev-page').addEventListener('click', () => {
+            if (pokedexPage > 0) {
+                pokedexPage--;
+                updatePokedexView();
+                document.getElementById('pokedex-container').scrollTop = 0;
+            }
+        });
+
+        document.getElementById('btn-next-page').addEventListener('click', () => {
+            const maxPage = Math.ceil(TOTALS[currentPokedexTab] / ITEMS_PER_PAGE);
+            if (pokedexPage < maxPage - 1) {
+                pokedexPage++;
+                updatePokedexView();
+                document.getElementById('pokedex-container').scrollTop = 0;
+            }
+        });
+
+        function updateAchievementsView() {
+            const listEl = document.getElementById('achievements-list');
+            listEl.innerHTML = '';
+            
+            const totalCollected = state.collected.num4.length + state.collected.num3.length + state.collected.eng3.length + state.collected.eng2.length;
+
+            ACHIEVEMENTS.forEach(a => {
+                const isClaimed = state.claimedAchievements.includes(a.id);
+                
+                let isAchieved = false;
+                let progressText = "";
+                
+                switch(a.type) {
+                    case 'total': isAchieved = totalCollected >= a.target; progressText = `${Math.min(totalCollected, a.target)}/${a.target}`; break;
+                    case 'num4': isAchieved = state.collected.num4.length >= a.target; progressText = `${Math.min(state.collected.num4.length, a.target)}/${a.target}`; break;
+                    case 'num3': isAchieved = state.collected.num3.length >= a.target; progressText = `${Math.min(state.collected.num3.length, a.target)}/${a.target}`; break;
+                    case 'eng3': isAchieved = state.collected.eng3.length >= a.target; progressText = `${Math.min(state.collected.eng3.length, a.target)}/${a.target}`; break;
+                    case 'eng2': isAchieved = state.collected.eng2.length >= a.target; progressText = `${Math.min(state.collected.eng2.length, a.target)}/${a.target}`; break;
+                    case 'level': isAchieved = state.level >= a.target; progressText = `Lv.${state.level}/Lv.${a.target}`; break;
+                }
+
+                const canClaim = isAchieved && !isClaimed;
+
+                const card = document.createElement('div');
+                card.className = `flex items-center justify-between p-4 rounded-xl ${isClaimed ? 'bg-slate-800 opacity-60' : 'bg-slate-700'}`;
+                
+                let btnHtml = '';
+                if (isClaimed) {
+                    btnHtml = `<span class="text-slate-500 text-sm font-bold">已領取</span>`;
+                } else if (canClaim) {
+                    btnHtml = `<button onclick="claimAchievement(${a.id}, ${a.exp})" class="bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition-transform active:scale-95 text-sm">領取</button>`;
+                } else {
+                    btnHtml = `<span class="text-slate-400 text-xs">${progressText}</span>`;
+                }
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center ${isClaimed ? 'bg-slate-700' : (isAchieved ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-500')}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+                        </div>
+                        <div>
+                            <div class="font-bold ${isClaimed ? 'text-slate-400' : 'text-white'} text-sm">${a.desc}</div>
+                            <div class="text-blue-400 text-xs mt-1">+${a.exp} EXP</div>
+                        </div>
+                    </div>
+                    <div>${btnHtml}</div>
+                `;
+                listEl.appendChild(card);
+            });
+        }
+
+        window.claimAchievement = function(id, exp) {
+            state.claimedAchievements.push(id);
+            addExp(exp);
+            showNotification(`完成成就！獲得 ${exp} EXP`);
+            updateUI();
+        }
+
+        // ================= [ 掃描模擬邏輯 ] =================
+        const fileInput = document.getElementById('file-input');
+        const canvas = document.getElementById('preview-canvas');
+        const ctx = canvas.getContext('2d');
+        const scanOverlay = document.getElementById('scan-overlay');
+        const resultModal = document.getElementById('result-modal');
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const img = new Image();
+            img.src = URL.createObjectURL(file);
+            img.onload = () => {
+                canvas.style.display = 'block';
+                document.getElementById('scan-prompt').style.display = 'none';
+                
+                // Draw image on canvas to fit
+                const size = Math.min(canvas.parentElement.clientWidth, canvas.parentElement.clientHeight);
+                canvas.width = size;
+                canvas.height = size;
+                
+                // Crop to square
+                const scale = Math.max(size / img.width, size / img.height);
+                const x = (size / scale - img.width) / 2;
+                const y = (size / scale - img.height) / 2;
+                ctx.drawImage(img, x, y, img.width, img.height, 0, 0, img.width * scale, img.height * scale);
+
+                // Start scan animation
+                scanOverlay.style.display = 'block';
+                
+                // Simulate recognition delay
+                setTimeout(() => {
+                    scanOverlay.style.display = 'none';
+                    generateRandomPlate();
+                    fileInput.value = ''; // Reset
+                }, 2000 + Math.random() * 1000);
+            };
+        });
+
+        function generateRandomPlate() {
+            // 機率分佈：4位數 50%, 3位數 30%, 3位英文 12%, 2位英文 8%
+            const r = Math.random();
+            let type, value, displayStr;
+            
+            if (r < 0.5) {
+                type = 'num4';
+                value = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+                displayStr = `ABC-${value}`;
+            } else if (r < 0.8) {
+                type = 'num3';
+                value = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+                displayStr = `DEF-${value}`;
+            } else if (r < 0.92) {
+                type = 'eng3';
+                value = ENG3_WORDS[Math.floor(Math.random() * ENG3_WORDS.length)].word;
+                displayStr = `${value}-1234`;
+            } else {
+                type = 'eng2';
+                value = ENG2_WORDS[Math.floor(Math.random() * ENG2_WORDS.length)].word;
+                displayStr = `${value}-5678`;
+            }
+
+            processScannedPlate(type, value, displayStr);
+        }
+
+        function processScannedPlate(type, value, displayStr) {
+            const isNew = !state.collected[type].includes(value);
+            
+            document.getElementById('result-plate').textContent = displayStr;
+            const contentBox = document.getElementById('result-modal-content');
+
+            if (isNew) {
+                state.collected[type].push(value);
+                
+                // 基礎經驗值
+                let expGain = 0;
+                if(type === 'num4') expGain = 10;
+                if(type === 'num3') expGain = 20;
+                if(type === 'eng3') expGain = 50;
+                if(type === 'eng2') expGain = 80;
+
+                document.getElementById('result-title').textContent = "發現新車牌！";
+                document.getElementById('result-title').className = "text-xl font-bold mb-2 text-emerald-400";
+                document.getElementById('result-desc').textContent = "成功收錄至圖鑑中";
+                document.getElementById('result-exp').textContent = `+ ${expGain} EXP`;
+                document.getElementById('result-exp').style.display = 'block';
+                contentBox.classList.add('border-2', 'border-emerald-500');
+                
+                addExp(expGain);
+            } else {
+                document.getElementById('result-title').textContent = "已蒐集過";
+                document.getElementById('result-title').className = "text-xl font-bold mb-2 text-slate-400";
+                document.getElementById('result-desc').textContent = "這個車牌已經在你的圖鑑裡了";
+                document.getElementById('result-exp').style.display = 'none';
+                contentBox.classList.remove('border-2', 'border-emerald-500');
+            }
+
+            resultModal.style.display = 'flex';
+        }
+
+        document.getElementById('btn-close-result').addEventListener('click', () => {
+            resultModal.style.display = 'none';
+            // Reset canvas view
+            canvas.style.display = 'none';
+            document.getElementById('scan-prompt').style.display = 'flex';
+        });
+
+        // ================= [ 視圖切換與導覽 ] =================
+        const views = ['view-home', 'view-scan', 'view-pokedex', 'view-achievements'];
+        
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const targetId = e.currentTarget.getAttribute('data-target');
+                
+                // 切換視圖
+                views.forEach(v => document.getElementById(v).classList.add('hidden'));
+                document.getElementById(targetId).classList.remove('hidden');
+                
+                // 更新按鈕樣式
+                document.querySelectorAll('.nav-btn').forEach(b => {
+                    b.classList.remove('text-blue-400');
+                    b.classList.add('text-slate-500');
+                });
+                e.currentTarget.classList.add('text-blue-400');
+                e.currentTarget.classList.remove('text-slate-500');
+
+                if (targetId === 'view-pokedex') updatePokedexView();
+                if (targetId === 'view-achievements') updateAchievementsView();
+            });
+        });
+
+        // 圖鑑頁籤切換
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.tab-btn').forEach(b => {
+                    b.classList.remove('bg-slate-700', 'font-bold', 'text-white');
+                    b.classList.add('text-slate-400');
+                });
+                e.target.classList.remove('text-slate-400');
+                e.target.classList.add('bg-slate-700', 'font-bold', 'text-white');
+                
+                currentPokedexTab = e.target.getAttribute('data-tab');
+                pokedexPage = 0; // 重置分頁
+                updatePokedexView();
+            });
+        });
+
+        // ================= [ 啟動遊戲 ] =================
+        loadState();
+        updateUI();
+
+    </script>
 </body>
 </html>
